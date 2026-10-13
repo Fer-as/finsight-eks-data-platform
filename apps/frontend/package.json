@@ -1,0 +1,25 @@
+{
+  "name": "finsight-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "test": "vitest run",
+    "format": "prettier --write src vite.config.js package.json",
+    "format:check": "prettier --check src vite.config.js package.json"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "jsdom": "^27.0.0",
+    "prettier": "3.9.10",
+    "vite": "^7.1.0",
+    "vitest": "^3.2.0"
+  }
+}
