@@ -5,7 +5,8 @@ PostgreSQL and a real Pandas → Parquet → PostgreSQL ETL pipeline. **Syntheti
 
 Day 1 includes revenue/expense/profit reporting, departmental expense budgets, monthly
 trends and transparent transaction risk indicators. ELT/dbt is reserved for Day 5.
-No AWS resources or cloud deployments are part of this implementation.
+The [Day 2 Terraform foundation](infra/terraform/README.md) is implemented for local review.
+No AWS resources have been provisioned or cloud deployments performed.
 
 ## Start locally from PowerShell
 

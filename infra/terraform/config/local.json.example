@@ -1,0 +1,32 @@
+{
+  "account_id": "REPLACE_WITH_12_DIGIT_ACCOUNT_ID",
+  "state_bucket": "REPLACE_WITH_UNIQUE_STATE_BUCKET",
+  "data_bucket": "REPLACE_WITH_UNIQUE_DATA_BUCKET",
+  "access_log_bucket": "REPLACE_WITH_UNIQUE_ACCESS_LOG_BUCKET",
+  "eks": {
+    "public_access_cidrs": [
+      "REPLACE_WITH_YOUR_PUBLIC_IPV4/32"
+    ],
+    "admin_role_arns": [
+      "REPLACE_WITH_EXISTING_ADMIN_IAM_ROLE_ARN"
+    ],
+    "compatibility_verified": false,
+    "addon_versions": {
+      "vpc-cni": "v1.23.1-eksbuild.1",
+      "kube-proxy": "v1.36.0-eksbuild.21",
+      "coredns": "v1.14.7-eksbuild.10",
+      "eks-pod-identity-agent": "REPLACE_AFTER_APPROVED_REGIONAL_CHECK",
+      "aws-ebs-csi-driver": "REPLACE_AFTER_APPROVED_REGIONAL_CHECK"
+    }
+  },
+  "dns": {
+    "zone_id": "REPLACE_WITH_EXISTING_PUBLIC_ZONE_ID",
+    "zone_name": "example.com",
+    "application_hostname": "eks.example.com"
+  },
+  "github": {
+    "create_provider": false,
+    "existing_provider_arn": "REPLACE_WITH_EXISTING_GITHUB_OIDC_PROVIDER_ARN_OR_SET_CREATE_TRUE",
+    "subject_prefix": "REPLACE_WITH_EXACT_REPOSITORY_OIDC_SUBJECT_PREFIX"
+  }
+}

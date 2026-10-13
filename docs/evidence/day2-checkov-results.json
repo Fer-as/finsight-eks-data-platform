@@ -1,0 +1,182 @@
+{
+  "review_date": "2026-10-13",
+  "image": "bridgecrew/checkov@sha256:19ab1e9a08bf76f78391ca6fa46bb62fd08737e4e66466b16a82aa2d1337e153",
+  "scope": "infra/terraform, local static scan only; no AWS operations",
+  "baseline": {
+    "summary": {
+      "passed": 114,
+      "failed": 13,
+      "skipped": 0,
+      "parsing_errors": 0,
+      "resource_count": 64,
+      "checkov_version": "3.3.27"
+    },
+    "failed_checks": [
+      {
+        "check_id": "CKV_AWS_136",
+        "resource": "module.images.aws_ecr_repository.this",
+        "file_path": "/modules/ecr/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_158",
+        "resource": "module.eks.aws_cloudwatch_log_group.cluster",
+        "file_path": "/modules/eks/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_39",
+        "resource": "module.eks.aws_eks_cluster.this",
+        "file_path": "/modules/eks/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_58",
+        "resource": "module.eks.aws_eks_cluster.this",
+        "file_path": "/modules/eks/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_158",
+        "resource": "module.network.aws_cloudwatch_log_group.flow",
+        "file_path": "/modules/network/main.tf"
+      },
+      {
+        "check_id": "CKV2_AWS_62",
+        "resource": "module.state.aws_s3_bucket.this",
+        "file_path": "/modules/retained-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV2_AWS_62",
+        "resource": "module.data.aws_s3_bucket.this",
+        "file_path": "/modules/retained-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_144",
+        "resource": "module.state.aws_s3_bucket.this",
+        "file_path": "/modules/retained-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_144",
+        "resource": "module.data.aws_s3_bucket.this",
+        "file_path": "/modules/retained-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_18",
+        "resource": "module.state.aws_s3_bucket.this",
+        "file_path": "/modules/retained-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_18",
+        "resource": "module.data.aws_s3_bucket.this",
+        "file_path": "/modules/retained-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_145",
+        "resource": "module.state.aws_s3_bucket.this",
+        "file_path": "/modules/retained-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_145",
+        "resource": "module.data.aws_s3_bucket.this",
+        "file_path": "/modules/retained-bucket/main.tf"
+      }
+    ]
+  },
+  "remediated": {
+    "summary": {
+      "passed": 130,
+      "failed": 0,
+      "skipped": 15,
+      "parsing_errors": 0,
+      "resource_count": 73,
+      "checkov_version": "3.3.27"
+    },
+    "fixed_logging_checks": [
+      {
+        "check_id": "CKV_AWS_18",
+        "resource": "module.state.aws_s3_bucket.this",
+        "file_path": "/modules/retained-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_18",
+        "resource": "module.data.aws_s3_bucket.this",
+        "file_path": "/modules/retained-bucket/main.tf"
+      }
+    ],
+    "skipped_checks": [
+      {
+        "check_id": "CKV_AWS_136",
+        "resource": "module.images.aws_ecr_repository.this",
+        "file_path": "/modules/ecr/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_158",
+        "resource": "module.eks.aws_cloudwatch_log_group.cluster",
+        "file_path": "/modules/eks/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_39",
+        "resource": "module.eks.aws_eks_cluster.this",
+        "file_path": "/modules/eks/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_58",
+        "resource": "module.eks.aws_eks_cluster.this",
+        "file_path": "/modules/eks/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_158",
+        "resource": "module.network.aws_cloudwatch_log_group.flow",
+        "file_path": "/modules/network/main.tf"
+      },
+      {
+        "check_id": "CKV2_AWS_62",
+        "resource": "module.access_logs.aws_s3_bucket.this",
+        "file_path": "/modules/access-log-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV2_AWS_62",
+        "resource": "module.state.aws_s3_bucket.this",
+        "file_path": "/modules/retained-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV2_AWS_62",
+        "resource": "module.data.aws_s3_bucket.this",
+        "file_path": "/modules/retained-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_144",
+        "resource": "module.access_logs.aws_s3_bucket.this",
+        "file_path": "/modules/access-log-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_144",
+        "resource": "module.state.aws_s3_bucket.this",
+        "file_path": "/modules/retained-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_144",
+        "resource": "module.data.aws_s3_bucket.this",
+        "file_path": "/modules/retained-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_18",
+        "resource": "module.access_logs.aws_s3_bucket.this",
+        "file_path": "/modules/access-log-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_145",
+        "resource": "module.access_logs.aws_s3_bucket.this",
+        "file_path": "/modules/access-log-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_145",
+        "resource": "module.state.aws_s3_bucket.this",
+        "file_path": "/modules/retained-bucket/main.tf"
+      },
+      {
+        "check_id": "CKV_AWS_145",
+        "resource": "module.data.aws_s3_bucket.this",
+        "file_path": "/modules/retained-bucket/main.tf"
+      }
+    ]
+  },
+  "dispositions": "day2-terraform-validation.md"
+}

@@ -1,0 +1,1 @@
+bridgecrew/checkov@sha256:19ab1e9a08bf76f78391ca6fa46bb62fd08737e4e66466b16a82aa2d1337e153
