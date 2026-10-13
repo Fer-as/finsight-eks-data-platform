@@ -234,3 +234,7 @@ data/rejected/
 *.tfplan
 *.tfvars
 !*.tfvars.example
+infra/terraform/config/local.json
+infra/terraform/**/backend.hcl
+infra/terraform/bootstrap/backend.tf
+infra/terraform/**/crash.log

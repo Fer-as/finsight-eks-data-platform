@@ -1,0 +1,12 @@
+{
+  "account_id": "111111111111",
+  "state_bucket": "finsight-test-state",
+  "data_bucket": "finsight-test-data",
+  "eks": {
+    "desired_size": 3
+  },
+  "tags": {
+    "Team": "test",
+    "Project": "must-not-override"
+  }
+}

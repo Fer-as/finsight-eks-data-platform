@@ -1,0 +1,4 @@
+# Copy to backend.tf ONLY after bootstrap succeeds and its local state is backed up.
+terraform {
+  backend "s3" {}
+}

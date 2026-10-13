@@ -1,0 +1,7 @@
+bucket       = "REPLACE_WITH_UNIQUE_STATE_BUCKET"
+key          = "bootstrap/terraform.tfstate"
+region       = "eu-west-2"
+encrypt      = true
+use_lockfile = true
+# Pin this to the intended account before real backend initialization.
+allowed_account_ids = ["REPLACE_WITH_12_DIGIT_ACCOUNT_ID"]
