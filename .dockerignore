@@ -1,0 +1,13 @@
+.git
+.env
+.venv
+.cache
+**/node_modules
+**/dist
+**/__pycache__
+.pytest_cache
+.ruff_cache
+data/raw
+data/curated
+data/rejected
+docs/evidence/*.png

@@ -218,3 +218,19 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# FinSight local artifacts
+node_modules/
+dist/
+.cache/
+.env.*
+!.env.example
+data/raw/
+data/curated/
+data/rejected/
+*.egg-info/
+.terraform/
+*.tfstate*
+*.tfplan
+*.tfvars
+!*.tfvars.example

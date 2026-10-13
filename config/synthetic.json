@@ -1,0 +1,13 @@
+{
+  "seed": 42,
+  "year": 2025,
+  "currency": "GBP",
+  "transactions": 10000,
+  "high_value_pence": 1000000,
+  "overnight_before_hour_utc": 6,
+  "departments": [
+    {"id": "retail", "name": "Retail Banking", "monthly_budget_pence": 6500000},
+    {"id": "commercial", "name": "Commercial Banking", "monthly_budget_pence": 9000000},
+    {"id": "operations", "name": "Operations", "monthly_budget_pence": 4500000}
+  ]
+}
