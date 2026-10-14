@@ -20,13 +20,22 @@ $fmtArgs = @("-chdir=$infra", "fmt", "-recursive")
 if (-not $Format) { $fmtArgs += "-check" }
 & $TerraformPath @fmtArgs
 if ($LASTEXITCODE -ne 0) { throw "Terraform formatting failed." }
-foreach ($root in $roots) {
-    $path = Join-Path $infra $root
-    Write-Host "Validating $root (backend disabled)"
-    & $TerraformPath "-chdir=$path" init -backend=false -input=false -lockfile=readonly
-    if ($LASTEXITCODE -ne 0) { throw "Terraform initialization failed: $root" }
-    & $TerraformPath "-chdir=$path" validate -no-color
-    if ($LASTEXITCODE -ne 0) { throw "Terraform validation failed: $root" }
+# -backend=false alone can still load an already configured S3 backend. Isolate local
+# validation metadata so the operator's deployed backend caches are never consulted.
+$originalDataDir = $env:TF_DATA_DIR
+try {
+    foreach ($root in $roots) {
+        $path = Join-Path $infra $root
+        $env:TF_DATA_DIR = Join-Path $repo ".cache/terraform-validation/$root"
+        Write-Host "Validating $root (isolated metadata; backend disabled)"
+        & $TerraformPath "-chdir=$path" init -backend=false -input=false -lockfile=readonly
+        if ($LASTEXITCODE -ne 0) { throw "Terraform initialization failed: $root" }
+        & $TerraformPath "-chdir=$path" validate -no-color
+        if ($LASTEXITCODE -ne 0) { throw "Terraform validation failed: $root" }
+    }
+}
+finally {
+    $env:TF_DATA_DIR = $originalDataDir
 }
 $configModule = Join-Path $infra "modules/config"
 & $TerraformPath "-chdir=$configModule" init -backend=false -input=false
@@ -38,6 +47,11 @@ $dnsModule = Join-Path $infra "modules/dns-policies"
 if ($LASTEXITCODE -ne 0) { throw "DNS policy test initialization failed." }
 & $TerraformPath "-chdir=$dnsModule" test -no-color
 if ($LASTEXITCODE -ne 0) { throw "Provider-free DNS policy tests failed." }
+$lbcModule = Join-Path $infra "modules/load-balancer-controller-policy"
+& $TerraformPath "-chdir=$lbcModule" init -backend=false -input=false
+if ($LASTEXITCODE -ne 0) { throw "Load balancer controller policy test initialization failed." }
+& $TerraformPath "-chdir=$lbcModule" test -no-color
+if ($LASTEXITCODE -ne 0) { throw "Provider-free load balancer controller policy tests failed." }
 $networkModule = Join-Path $infra "modules/network"
 & $TerraformPath "-chdir=$networkModule" init -backend=false -input=false -lockfile=readonly
 if ($LASTEXITCODE -ne 0) { throw "Mock network test initialization failed." }
@@ -48,5 +62,10 @@ $eksModule = Join-Path $infra "modules/eks"
 if ($LASTEXITCODE -ne 0) { throw "Mock EKS test initialization failed." }
 & $TerraformPath "-chdir=$eksModule" test -no-color
 if ($LASTEXITCODE -ne 0) { throw "Mock EKS tests failed." }
+$podRoleModule = Join-Path $infra "modules/pod-role"
+& $TerraformPath "-chdir=$podRoleModule" init -backend=false -input=false -lockfile=readonly
+if ($LASTEXITCODE -ne 0) { throw "Mock pod-role test initialization failed." }
+& $TerraformPath "-chdir=$podRoleModule" test -no-color
+if ($LASTEXITCODE -ne 0) { throw "Mock pod-role tests failed." }
 & (Join-Path $PSScriptRoot "scan-terraform.ps1")
 Write-Host "All three Terraform roots passed fmt/init/validate. No AWS operations were performed."
