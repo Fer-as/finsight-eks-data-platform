@@ -2,9 +2,9 @@
 param()
 $ErrorActionPreference = "Stop"
 $repo = Split-Path -Parent $PSScriptRoot
-$infra = Join-Path $repo "infra\terraform"
-$defaults = Get-Content -Raw (Join-Path $infra "config\defaults.json") | ConvertFrom-Json
-$localPath = Join-Path $infra "config\local.json"
+$infra = Join-Path $repo "infra/terraform"
+$defaults = Get-Content -Raw (Join-Path $infra "config/defaults.json") | ConvertFrom-Json
+$localPath = Join-Path $infra "config/local.json"
 if (-not (Test-Path -LiteralPath $localPath)) { throw "Create ignored config/local.json from its example first." }
 $overrides = Get-Content -Raw $localPath | ConvertFrom-Json
 $config = @{}

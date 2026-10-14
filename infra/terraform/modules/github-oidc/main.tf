@@ -148,10 +148,10 @@ resource "aws_iam_role_policy" "infra_plan" {
 }
 # Apply role for the platform root only, assumable only by jobs that run in the protected apply
 # environment (required reviewers, main only; configured in GitHub). This policy grants the
-# platform state object and its lock only. The AWS permissions to change platform resources are a
-# separate, owner-approved decision (see docs/infrastructure/terraform-ci.md); until then this role
-# cannot create or change infrastructure. It has no access to bootstrap or foundation state, so CI
-# can never modify the GitHub roles, OIDC trust or state buckets that govern it.
+# platform state object and its lock only; the scoped permissions to change platform resources are
+# the managed policies the foundation root attaches (modules/terraform-ci-policies, issue #8). It has
+# no access to bootstrap or foundation state, so CI can never modify the GitHub roles, OIDC trust or
+# state buckets that govern it.
 resource "aws_iam_role_policy" "infra_apply_state" {
   name = "platform-state-only"
   role = aws_iam_role.this["infra_apply"].id

@@ -13,7 +13,7 @@ if (-not $TerraformPath) {
     else { throw "Terraform 1.16.2 is required. Install it or pass -TerraformPath." }
 }
 $TerraformPath = (Resolve-Path -LiteralPath $TerraformPath).Path
-$infra = Join-Path $repo "infra\terraform"
+$infra = Join-Path $repo "infra/terraform"
 $roots = @("bootstrap", "environments/dev/foundation", "environments/dev/platform")
 # No plan, provider refresh, backend initialization, AWS CLI, or credential inspection.
 $fmtArgs = @("-chdir=$infra", "fmt", "-recursive")
