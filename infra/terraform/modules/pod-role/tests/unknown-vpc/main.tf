@@ -16,10 +16,11 @@ module "policy" {
   vpc_id       = terraform_data.vpc.output
 }
 module "role" {
-  source          = "../.."
-  name            = "finsight-test-aws-load-balancer-controller"
-  cluster_arn     = "arn:aws:eks:eu-west-2:111111111111:cluster/finsight-test"
-  namespace       = "kube-system"
-  service_account = "aws-load-balancer-controller"
-  inline_policy   = module.policy.policy
+  source               = "../.."
+  name                 = "finsight-test-aws-load-balancer-controller"
+  cluster_arn          = "arn:aws:eks:eu-west-2:111111111111:cluster/finsight-test"
+  namespace            = "kube-system"
+  service_account      = "aws-load-balancer-controller"
+  inline_policy        = module.policy.policy
+  permissions_boundary = "arn:aws:iam::111111111111:policy/finsight-test-workload-boundary"
 }

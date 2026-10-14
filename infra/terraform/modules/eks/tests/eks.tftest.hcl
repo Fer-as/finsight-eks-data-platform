@@ -1,8 +1,9 @@
 # Offline unit tests with a mocked AWS provider. All run blocks use plan and create no resources.
 mock_provider "aws" {}
 variables {
-  name       = "finsight-test"
-  subnet_ids = ["subnet-private-a", "subnet-private-b"]
+  name                 = "finsight-test"
+  subnet_ids           = ["subnet-private-a", "subnet-private-b"]
+  permissions_boundary = "arn:aws:iam::111111111111:policy/finsight-test-workload-boundary"
   config = merge(jsondecode(file("../../config/defaults.json")).eks, {
     public_access_cidrs    = ["203.0.113.10/32"]
     admin_role_arns        = ["arn:aws:iam::111111111111:role/test-admin"]
@@ -52,4 +53,14 @@ run "reject_open_api_endpoint" {
     })
   }
   expect_failures = [var.config]
+}
+run "all_eks_roles_bounded" {
+  command = plan
+  assert {
+    condition = (
+      aws_iam_role.cluster.permissions_boundary == "arn:aws:iam::111111111111:policy/finsight-test-workload-boundary" &&
+      aws_iam_role.node.permissions_boundary == "arn:aws:iam::111111111111:policy/finsight-test-workload-boundary"
+    )
+    error_message = "Cluster and node roles must carry the FinSight workload boundary."
+  }
 }

@@ -4,9 +4,10 @@ mock_provider "aws" {
   }
 }
 variables {
-  name   = "finsight-test"
-  region = "eu-west-2"
-  config = jsondecode(file("../../config/defaults.json")).network
+  name                 = "finsight-test"
+  region               = "eu-west-2"
+  config               = jsondecode(file("../../config/defaults.json")).network
+  permissions_boundary = "arn:aws:iam::111111111111:policy/finsight-test-workload-boundary"
 }
 run "valid_two_az_network" {
   command = plan
@@ -63,6 +64,13 @@ run "reject_admin_port_as_ingress_target" {
   command = plan
   variables { ingress_target_ports = [443, 3389] }
   expect_failures = [var.ingress_target_ports]
+}
+run "flow_log_role_bounded" {
+  command = plan
+  assert {
+    condition     = aws_iam_role.flow.permissions_boundary == "arn:aws:iam::111111111111:policy/finsight-test-workload-boundary"
+    error_message = "The flow-log role must carry the FinSight workload boundary."
+  }
 }
 run "reject_overlap" {
   command = plan

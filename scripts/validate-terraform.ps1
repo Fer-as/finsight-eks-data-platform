@@ -67,5 +67,15 @@ $podRoleModule = Join-Path $infra "modules/pod-role"
 if ($LASTEXITCODE -ne 0) { throw "Mock pod-role test initialization failed." }
 & $TerraformPath "-chdir=$podRoleModule" test -no-color
 if ($LASTEXITCODE -ne 0) { throw "Mock pod-role tests failed." }
+$githubModule = Join-Path $infra "modules/github-oidc"
+& $TerraformPath "-chdir=$githubModule" init -backend=false -input=false -lockfile=readonly
+if ($LASTEXITCODE -ne 0) { throw "Mock GitHub OIDC test initialization failed." }
+& $TerraformPath "-chdir=$githubModule" test -no-color
+if ($LASTEXITCODE -ne 0) { throw "Mock GitHub OIDC tests failed." }
+$ciPolicyModule = Join-Path $infra "modules/terraform-ci-policies"
+& $TerraformPath "-chdir=$ciPolicyModule" init -backend=false -input=false
+if ($LASTEXITCODE -ne 0) { throw "CI policy test initialization failed." }
+& $TerraformPath "-chdir=$ciPolicyModule" test -no-color
+if ($LASTEXITCODE -ne 0) { throw "Provider-free CI policy tests failed." }
 & (Join-Path $PSScriptRoot "scan-terraform.ps1")
 Write-Host "All three Terraform roots passed fmt/init/validate. No AWS operations were performed."
