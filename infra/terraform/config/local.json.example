@@ -12,11 +12,11 @@
     ],
     "compatibility_verified": false,
     "addon_versions": {
-      "vpc-cni": "v1.23.1-eksbuild.1",
-      "kube-proxy": "v1.36.0-eksbuild.21",
+      "vpc-cni": "v1.22.4-eksbuild.3",
+      "kube-proxy": "v1.36.0-eksbuild.25",
       "coredns": "v1.14.7-eksbuild.10",
-      "eks-pod-identity-agent": "REPLACE_AFTER_APPROVED_REGIONAL_CHECK",
-      "aws-ebs-csi-driver": "REPLACE_AFTER_APPROVED_REGIONAL_CHECK"
+      "eks-pod-identity-agent": "v1.3.10-eksbuild.3",
+      "aws-ebs-csi-driver": "v1.66.0-eksbuild.1"
     }
   },
   "dns": {

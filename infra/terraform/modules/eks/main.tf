@@ -121,7 +121,7 @@ module "ebs_role" {
   cluster_arn     = aws_eks_cluster.this.arn
   namespace       = "kube-system"
   service_account = "ebs-csi-controller-sa"
-  policy_arns     = ["arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"]
+  policy_arns     = ["arn:aws:iam::aws:policy/AmazonEBSCSIDriverPolicyV2"]
 }
 resource "aws_eks_addon" "identity_agent" {
   cluster_name                = aws_eks_cluster.this.name

@@ -82,3 +82,66 @@ Cross-Region replication was not added: it would add destination storage, replic
 requests and applicable inter-Region transfer charges, with no defined recovery requirement
 in this temporary single-Region assessment. A future production/DR design needs its own
 sizing, restore testing and cost approval.
+
+## Readiness re-estimate: 24, 48 and 72 hours
+
+Re-estimated on 13 October 2026. The London rates in the first table were re-read from the
+AWS Price List API and are unchanged: EKS $0.10/hour, m7i.large $0.11655/hour, NAT $0.05/hour
+and $0.05/GB, gp3 $0.0928/GB-month, public IPv4 $0.005/hour. CloudWatch log ingestion,
+including EKS control-plane and VPC flow logs, is $0.5985/GB.
+
+Fixed charges are about **$0.388/hour** (control plane, two nodes, NAT, one public IPv4), or
+$9.31/day, plus $0.18/day for the two root volumes. The rest is usage.
+
+| Window | Day 2 platform, low | Day 2 platform, high | Full demo, low | Full demo, high |
+|---|---:|---:|---:|---:|
+| 24 hours | $9.70 | $10.85 | $10.84 | $11.99 |
+| 48 hours | $19.40 | $21.45 | $21.68 | $23.73 |
+| 72 hours | $29.10 | $32.05 | $32.52 | $35.47 |
+
+Assumptions:
+
+- Low uses the original allowances: 1 GB/day through NAT, $0.10/day of logs, $0.05/day S3/ECR.
+- High assumes 1.5 GB/day of logs ($0.90; all five control-plane log types plus flow logs
+  are enabled, and audit/API logs dominate), 3 GB/day through NAT, and a one-off 5 GB of image
+  pulls through NAT on the first day ($0.25).
+- Full demo adds the later NLB, its two public IPv4 addresses and 40 GB of extra gp3
+  ($1.14/day). None of that exists in the Day 2 platform.
+- Two nodes throughout. A third node, if the group scales to its maximum, adds $2.89/day.
+- Excludes tax. If UK VAT applies to the account, add 20%: the 72-hour high figures become
+  about $38 and $43.
+- Creation and deletion take roughly 20 to 30 minutes each and are billed; allow about one
+  extra hour ($0.40) on top of the intended window.
+
+Uncertainty: fixed charges are firm to the cent for the hours actually run. Log volume is the
+least certain item and has not been measured; internet egress, cross-AZ traffic and NLB
+capacity are assumed to be negligible at demo traffic. A failed apply or incomplete teardown
+is the realistic way to exceed these figures, because NAT, the control plane and any orphaned
+load balancer keep charging until removed.
+
+### Budget position
+
+A read-only billing check on 13 October 2026 showed about **$35 already spent this month** by
+unrelated workloads in the same account, which continue to cost roughly $2.80/day. The $50
+budget is account-wide with a single alert at $50 actual spend, so:
+
+- Deployed now, the alert would fire about 1.2 days after the platform apply. It would not
+  stop anything.
+- A 72-hour Day 2 window started now would take the month to roughly $73 to $76 by the end of
+  the window, before the unrelated workloads' remaining days.
+- The same window started on or after 1 November begins from a fresh month, but the unrelated
+  workloads alone consume most of the $50 over a full month.
+
+### Recommended window and teardown
+
+- Use a **48-hour** window unless the assessment needs longer, and fix the teardown time
+  before the platform apply. Start on a morning when the operator is available for the whole
+  apply and for the teardown.
+- Bootstrap and foundation can be applied earlier: their buckets, repositories and roles cost
+  cents per month. Only the platform apply starts hourly charges.
+- Tear down the platform root only, following [runbook.md](runbook.md) section 6: saved
+  destroy plan, review, apply, then verify the cluster, nodes, NAT gateway, Elastic IP, VPC
+  and log groups are gone. Scaling nodes to zero is not a teardown; the control plane and NAT
+  still cost $3.72/day.
+- Check Cost Explorer or the budget the following day. Billing data lags by up to a day, so
+  the alert is not a real-time signal.
