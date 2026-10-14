@@ -1,8 +1,12 @@
 # Terraform CI identities and approval gate
 
 Decision record, 14 October 2026 (issue #8, Option A approved by the owner; independently
-reviewed and hardened the same day). Defined in Terraform and tested offline; **nothing applied**.
-The GitHub environments are not configured yet and there is no workflow (#10, #11).
+reviewed and hardened the same day). Current state:
+- The foundation IAM is applied, and both GitHub environments and the `main` ruleset are configured.
+- The pull-request workflow (#10) is merged; its first run passed, with the plan skipped by the
+  compatibility gate.
+- The approval-gated apply workflow (#11) is written and tested with synthetic fixtures, but it
+  has not run and no CI apply has happened.
 
 ## Roles
 
@@ -156,13 +160,13 @@ Status on 14 October 2026.
 | Exact immutable OIDC subject per environment, no wildcards | Implemented and applied (plan, image and apply roles) |
 | Separate plan (read-only) and apply roles | Implemented and applied |
 | Apply permissions scoped, boundary mandatory | Applied (foundation, 11 resources); synthetic tests only, no CI apply has run |
-| Protected `dev-infrastructure-apply` environment | Configured: reviewer Fer-as, `main` only, administrator bypass off, variable `AWS_ROLE_ARN` |
-| Protected `dev-infrastructure` environment | Configured: reviewer Fer-as, `refs/pull/*/merge` only, administrator bypass off, variable `AWS_ROLE_ARN` (plan role), secret `TERRAFORM_CONFIG_JSON` |
+| Protected `dev-infrastructure-apply` environment | Configured: reviewer Fer-as, `main` only, administrator bypass off, variable `AWS_ROLE_ARN`, secrets `TERRAFORM_CONFIG_JSON` and `PLAN_DECRYPTION_IDENTITY` |
+| Protected `dev-infrastructure` environment | Configured: reviewer Fer-as, `refs/pull/*/merge` and `main`, administrator bypass off, variables `AWS_ROLE_ARN` (plan role), `PLAN_ENCRYPTION_RECIPIENT` and `PLAN_REVIEW_RECIPIENT`, secret `TERRAFORM_CONFIG_JSON` |
 | `main` protected | Ruleset: pull request required (0 approvals, single maintainer), no force pushes, no deletion, no bypass |
 | No AWS credentials for untrusted pull requests | Pull-request workflow (#10): `pull_request` trigger only, plan job skipped for fork heads, `permissions: {}` by default; **not yet run** |
 | Plan output does not leak private values | Pull-request workflow (#10): plan text kept out of logs, values masked, summary shows actions and digests only, no binary plan artifact; **not yet run** |
-| Saved-plan, commit and digest binding | Digests produced by `scripts/ci/summarize-terraform-plan.ps1`; enforcement is #11 |
-| No unapproved destroy or replacement | Flagged by the plan summary; the apply gate is #11. IAM cannot express it, because the apply role must be able to delete platform resources for replacements |
+| Saved-plan, commit and digest binding | Apply workflow (#11): encrypted saved plan with commit, run, state, lock, version, ciphertext, plaintext and changes digests checked before apply; synthetic tests only, **not yet run** |
+| No unapproved destroy or replacement | Apply workflow (#11): refused unless `allow_destroy` and reviewer approval; VPC creation or replacement always refused. IAM cannot express it, because the apply role must be able to delete platform resources for replacements |
 | Required reviewer and self-review limits | Configured; single-maintainer self-approval, not two-person review |
 
 ## Pull-request workflow (`.github/workflows/terraform.yml`, issue #10)
@@ -216,15 +220,21 @@ Repository **Settings → Environments**:
    - **Allow administrators to bypass:** off.
    - **Deployment branches and tags:** Selected branches, `main` only.
    - **Variable `AWS_ROLE_ARN`:** the apply role's ARN, read from AWS. It is not a secret.
-   - **No AWS keys.** #11 will also need the `TERRAFORM_CONFIG_JSON` secret here.
+   - **No AWS keys.**
+   - **Added for #11 on 14 October 2026:**
+     - secret `TERRAFORM_CONFIG_JSON`, built from the same source and with the same code as the
+       planning secret; SHA-256 recorded privately. Byte-for-byte equality with the planning
+       secret is **not yet proven**. The apply job compares the config digests of both jobs and
+       fails closed on a mismatch.
+     - secret `PLAN_DECRYPTION_IDENTITY`, the CI age identity. It exists only here.
 2. **`dev-infrastructure`** (plan; configured 14 October 2026):
    - **Required reviewers:** Fer-as, with Prevent self-review off. Every pull-request plan job
      waits for the owner's approval before it can obtain the plan role. This is a deliberate owner
      choice; the role itself is read-only apart from its lock object.
    - **Allow administrators to bypass:** off.
-   - **Deployment branches and tags:** Selected, with the single branch rule `refs/pull/*/merge`.
-     GitHub matches the rule against the run's `GITHUB_REF`, which for `pull_request` runs is
-     `refs/pull/<number>/merge`, and `*` does not match `/`. Pushes and other branches cannot use
+   - **Deployment branches and tags:** Selected, with two branch rules: `refs/pull/*/merge` and
+     `main`. GitHub matches the rules against the run's `GITHUB_REF`, which for `pull_request`
+     runs is `refs/pull/<number>/merge`, and `*` does not match `/`. Other branches cannot use
      this environment.
    - **No wait timer.**
    - **Set 14 October 2026:**
@@ -236,6 +246,11 @@ Repository **Settings → Environments**:
        doesn't use them. It contains no credentials; storing it as a secret keeps private
        identifiers out of the repository and masked in logs. Re-upload it whenever those fields
        change locally, for example when the compatibility gate is passed.
+   - **Added for #11 on 14 October 2026:**
+     - a second branch rule, `main`, so the manual apply workflow's plan job can run; the reviewer
+       requirement stays
+     - variable `PLAN_ENCRYPTION_RECIPIENT`, the CI age public key
+     - variable `PLAN_REVIEW_RECIPIENT`, the owner's age public key, set by the owner
 3. **`dev-images`:** `main` only, with `AWS_ROLE_ARN` set to the image role's ARN. Configure it with
    the image workflow.
 4. Repository **Actions → General**: keep "Require approval for fork pull requests" enabled.
@@ -244,27 +259,165 @@ Repository **Settings → Environments**:
 Workflows reference role ARNs only as `${{ vars.AWS_ROLE_ARN }}`, from a job that names its
 environment explicitly. They never contain an `arn:aws` literal.
 
-## Applying exactly what was approved (rules for #11)
+## Approval-gated apply (`.github/workflows/terraform-apply.yml`, issue #11)
 
-- Never use `pull_request_target` or `workflow_run` triggers with `id-token: write`.
-- **The apply job:**
-  - declares `environment: dev-infrastructure-apply` and uses `role-to-assume:
-    ${{ vars.AWS_ROLE_ARN }}`
-  - shares the `terraform-state-dev-platform` concurrency group
-  - runs only for commits on `main`
-- **Plan binding without publishing the plan.** Artifacts of this public repository are public, so
-  a plaintext binary plan must not be uploaded between jobs. The recommended design:
-  1. The plan job on `main` publishes only its summary and digests.
-  2. After approval, the apply job re-plans the same commit.
-  3. It refuses to continue unless its `changes_sha256` equals the approved one.
-  4. It then applies its own saved plan file in the same job.
+Written, independently reviewed and tested with synthetic fixtures; **not yet run**. The keys and environments it needs are now configured (14 October 2026).
 
-  The alternative is a plan artifact encrypted with a key held only in the two environments. Either
-  way, the commit (`github.sha`) must match, and Terraform refuses a saved plan if state changed.
-- **Destructive plans.** If the plan contains any delete or replacement, the apply job stops unless
-  the run was started with an explicit `allow-destroy` input.
-- **New VPCs.** If the plan creates a VPC, CI never applies it; a human runs that apply.
-- **Locking.** Per-root concurrency; no automatic `force-unlock`.
+The security regression tests are in `scripts/ci/tests/plan-protection.tests.ps1`: 59 checks using throwaway age keys and synthetic plans, with no AWS. The pull-request `checks` job runs them on every relevant change.
+
+**Trigger**
+- `workflow_dispatch` only, and both jobs refuse anything but `refs/heads/main`.
+- The single boolean input `allow_destroy` defaults to false.
+- `permissions: {}` by default.
+
+**`plan` job** (environment `dev-infrastructure`, `contents: read`, `id-token: write`):
+1. Before any AWS session, it fails closed unless:
+   - both age recipients are configured, valid and different
+   - the CI decryption key is **not** visible to this job, for example as a repository-level
+     secret
+2. Fails unless `eks.compatibility_verified` is true.
+3. Assumes the read-only plan role through `vars.AWS_ROLE_ARN` and checks it is the plan role.
+4. Runs `init`, then `plan -lock-timeout=5m -out=platform.tfplan`. The plan text is never
+   logged.
+5. `scripts/ci/protect-terraform-plan.ps1` classifies every planned action:
+   - create, update, delete, replace, forget and import are recognised
+   - anything unrecognised counts as destructive
+6. It then applies the gates:
+   - **Never in CI, even with `allow_destroy`:** any creation, replacement, deletion or forget of
+     a **VPC** or the **EKS cluster**, and any **import**. These are human-run. In-place updates,
+     such as tags, are allowed.
+   - **Only with `allow_destroy` (and then approval):** any delete, replace, forget or
+     unrecognised action.
+7. It encrypts two copies of the **same saved plan file**:
+   - **Binary plan:** to the CI recipient.
+   - **Readable `terraform show` copy:** to the reviewer recipient. The copy starts with a header
+     of the plan's identity: the run and attempt, commit, state key, plan SHA-256, changes SHA-256
+     and counts.
+8. It publishes the identity as job outputs and as a table in the run summary:
+   - commit, run and attempt
+   - SHA-256 of `backend.hcl` (state bucket, key, Region and account)
+   - SHA-256 of the private configuration
+   - lock-file hash and Terraform version
+   - plan, ciphertext and changes digests
+   - the CI recipient and `allow_destroy`
+9. Uploads the two ciphertexts as one-day artifacts. Plaintext never leaves the runner.
+
+**`apply` job** (environment `dev-infrastructure-apply`; runs only if there are changes):
+1. **The approval pause happens here.** GitHub issues the apply role and the
+   `PLAN_DECRYPTION_IDENTITY` secret only after the required reviewer approves.
+2. Assumes the apply role and checks it is the apply role.
+3. Initialises the backend and downloads the plan artifact by its exact name. `download-artifact`
+   fails on a digest mismatch.
+4. `scripts/ci/unprotect-terraform-plan.ps1` refuses unless all of these match the plan job's
+   outputs:
+   - commit, both `GITHUB_SHA` and `HEAD`
+   - workflow run and attempt
+   - state key and backend digest
+   - configuration digest
+   - lock-file hash and Terraform version
+   - ciphertext digest
+   - the recipient derived from the identity
+5. It decrypts, passing the identity to age on **standard input**: it is never an argument or a
+   file. age authenticates the ciphertext.
+6. It refuses unless the plaintext SHA-256 and changes digest match and the gates still pass. A
+   plan failing any check is deleted.
+7. `terraform apply approved.tfplan` applies that file; **nothing is re-planned**. Terraform refuses
+   a saved plan whose state changed after planning ("Saved plan is stale"). Only the "Apply
+   complete!" line is logged.
+
+**Both jobs**
+- Share the `terraform-state-dev-platform` concurrency group with pull-request plans, with
+  `cancel-in-progress` off.
+- Use a 5-minute lock timeout and never `force-unlock`.
+- Have timeouts and failure summaries.
+- Always delete plans, decrypted files, configuration and `backend.hcl`.
+
+**Rejection, timeouts and staleness**
+- **Rejected approval:** the apply job never starts, so no credentials or key are issued. The
+  encrypted artifacts expire after one day.
+- **Late approval:**
+  - after one day, the artifact download fails
+  - after any state change, Terraform rejects the stale plan
+  - both fail closed; start a new run
+- **Pending timeout:** GitHub allows a deployment to wait up to 30 days. Reject runs you will not
+  approve. A waiting apply may also hold the concurrency group and delay pull-request plans.
+
+**Why the applied plan is the reviewed plan**
+- The review copy and the binary plan are encrypted from the same file in the same step.
+- The review copy's header carries that file's `plan_sha256`, and the run summary shows the same
+  value.
+- The apply job may only execute a file with that `plan_sha256`, reached through a ciphertext with
+  the pinned digest.
+- That file must decrypt with the identity only the approved environment holds.
+- Its commit, run, backend, configuration, lock file and version must all match.
+- Job outputs travel inside the run, not through the public artifact.
+- Anyone holding the public CI key can encrypt a different plan, but it cannot match both pinned
+  digests.
+
+**Encryption and keys (age v1.3.2, X25519)**
+- The pinned release tarballs were verified on 14 October 2026 with `sigsum-verify` v0.13.1:
+  - against age's two published Sigsum keys and the `sigsum-generic-2025-1` policy
+  - with a negative control that was rejected
+
+  The checksums are:
+  - Linux, used by CI: `cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10`
+  - Windows, for the reviewer: `f48d8f8f9ebe903ab5027ed067652f2cc1db94bc206976430133b905dcd8e8c7`
+- CI checks the Linux SHA-256 before installing, and installs only `age` and `age-keygen`, without
+  plugins.
+
+| Key | Where | Purpose |
+|---|---|---|
+| CI recipient (public) | `dev-infrastructure` variable `PLAN_ENCRYPTION_RECIPIENT` | Plan job encrypts the binary plan |
+| CI identity (private) | `dev-infrastructure-apply` secret `PLAN_DECRYPTION_IDENTITY` | Apply job decrypts, only after approval |
+| Reviewer recipient (public) | `dev-infrastructure` variable `PLAN_REVIEW_RECIPIENT` | Plan job encrypts the readable copy |
+| Reviewer identity (private) | The owner's computer only, never in GitHub | Owner decrypts the review copy |
+
+The CI key cannot read the review copy, and the reviewer key cannot read the binary plan. Missing,
+malformed, wrong or misplaced keys all fail closed.
+
+**Failing-run evidence (G06.6).** These refusals are deliberate and cost nothing:
+- a run while `eks.compatibility_verified` is false
+- a run before the keys exist
+- a plan with deletions but without `allow_destroy`
+
+### Reviewing a plan before approving (Windows PowerShell)
+
+**One-time setup:**
+
+```powershell
+$tools = "$HOME\tools"; New-Item -ItemType Directory -Force $tools, "$HOME\.age" | Out-Null
+Invoke-WebRequest -UseBasicParsing "https://github.com/FiloSottile/age/releases/download/v1.3.2/age-v1.3.2-windows-amd64.zip" -OutFile "$tools\age.zip"
+(Get-FileHash "$tools\age.zip" -Algorithm SHA256).Hash.ToLower() -eq "f48d8f8f9ebe903ab5027ed067652f2cc1db94bc206976430133b905dcd8e8c7"   # must be True
+Expand-Archive "$tools\age.zip" $tools -Force; Remove-Item "$tools\age.zip"
+& "$tools\age\age-keygen.exe" -o "$HOME\.age\finsight-review.key"   # prints your public key (age1...)
+icacls "$HOME\.age\finsight-review.key" /inheritance:r /grant:r "${env:USERNAME}:R" | Out-Null
+```
+
+`age-keygen` prints "Public key: age1..." and a "world-readable" warning; the warning is expected,
+and the `icacls` line then makes the file readable by you only. To replace the key later, first
+run `icacls <file> /grant:r "${env:USERNAME}:F"`. Keep `finsight-review.key` only on this
+computer, and back it up offline. Give only the `age1...` public key for `PLAN_REVIEW_RECIPIENT`.
+
+**For each run waiting for approval:**
+1. Open the run. Note the run ID (in the URL) and the attempt, then read the summary table
+   "Before approving the apply job".
+2. Download and check the encrypted review copy, replacing the two values:
+
+   ```powershell
+   $run = "<run id>"; $attempt = "<attempt>"; $dir = "$env:TEMP\finsight-review-$run"
+   gh run download $run --repo Fer-as/finsight-eks-data-platform --name "terraform-plan-review-$run-$attempt" --dir $dir
+   (Get-FileHash "$dir\platform-plan-review.txt.age" -Algorithm SHA256).Hash.ToLower()   # must equal "Encrypted review copy SHA-256"
+   ```
+3. Decrypt to the screen only. Nothing in plaintext is written to disk:
+
+   ```powershell
+   & "$HOME\tools\age\age.exe" --decrypt --identity "$HOME\.age\finsight-review.key" "$dir\platform-plan-review.txt.age" | Out-Host -Paging
+   ```
+4. Check that the header's run, attempt, commit, state key, **plan SHA-256** and changes SHA-256
+   equal the summary table. Then review every change.
+5. **Approve:** on the run page, choose Review deployments, then `dev-infrastructure-apply`, then
+   Approve. **Reject** if anything differs or is unexpected.
+6. Delete the download: `Remove-Item -Recurse -Force $dir`.
 ## What is not proven yet (synthetic vs real)
 
 The tests in `modules/terraform-ci-policies/tests` evaluate the policy text with a small model
@@ -329,4 +482,4 @@ Residual risks:
    `TERRAFORM_CONFIG_JSON` were set.
 5. The administrator applies the initial platform deployment from a reviewed saved plan. It
    creates the VPC, so CI cannot (see Cross-project isolation).
-6. #11 builds the approval-gated apply; CI then applies later platform changes.
+6. #11: the approval-gated apply workflow is written. It needs the age keys, the `main` rule on `dev-infrastructure`, and `TERRAFORM_CONFIG_JSON` in `dev-infrastructure-apply`. It can then apply non-VPC changes after the human-run initial deployment.
