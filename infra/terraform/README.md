@@ -108,7 +108,9 @@ check exclusions or soft-fail options are configured.
 - AWS-managed EKS security groups permit node-to-node communication and outbound access.
   NAT permits outbound AWS/HTTPS access, including EKS Auth for Pod Identity. Workload
   NetworkPolicies and ingress-specific hardening belong to the later Kubernetes phase.
-- Pod Identity binds CNI, EBS CSI and future ETL to specific service accounts/cluster.
+- Pod Identity binds CNI, EBS CSI, the future ETL, ExternalDNS and cert-manager to specific
+  service accounts/cluster. The two DNS roles can change only named records in the one hosted
+  zone and never each other's; see [dns-and-certificates.md](../../docs/infrastructure/dns-and-certificates.md).
   The node role has worker and ECR-pull policies, not S3 or CNI permissions. AWS-managed
   CNI/CSI policies have necessary broader EC2 rights and can evolve independently of provider pins.
 - GitHub trust uses exact audience and repository/environment subjects, never wildcard
