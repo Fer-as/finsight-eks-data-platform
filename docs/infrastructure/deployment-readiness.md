@@ -383,8 +383,9 @@ roles with policies), 0 to change, 0 to destroy. **Stop for approval.**
 & $tf "-chdir=$platform" show platform.tfplan                          # LOCAL
 ```
 
-Expected with one administrator role: 53 to add (24 network, 20 EKS, 3 ETL identity,
-6 ExternalDNS and cert-manager identity),
+Expected with one administrator role: 65 to add (33 network including the public ingress
+security group and its 8 rules, 20 EKS, 3 NLB-to-ingress rules on the cluster security group,
+3 ETL identity, 6 ExternalDNS and cert-manager identity),
 0 to change, 0 to destroy. **Stop for approval of the plan and the running-cost window.**
 The platform apply is the step that starts hourly charges; it is in the [runbook](runbook.md).
 

@@ -25,6 +25,7 @@ AWS provider default_tags; EC2/EBS tag specifications are passed explicitly to e
 | `endpoint` | Restricted Kubernetes API endpoint. |
 | `node_group_name` | Managed group name. |
 | `addon_versions` | Configured version map. |
+| `cluster_security_group_id` | EKS-created cluster security group shared by control plane, nodes and pods. |
 
 See [main.tf](main.tf) for complete type constraints and [central defaults](../../config/defaults.json)
 for the dev example. Usage is demonstrated by the [bootstrap](../../bootstrap/main.tf),

@@ -43,5 +43,10 @@ $networkModule = Join-Path $infra "modules/network"
 if ($LASTEXITCODE -ne 0) { throw "Mock network test initialization failed." }
 & $TerraformPath "-chdir=$networkModule" test -no-color
 if ($LASTEXITCODE -ne 0) { throw "Mock network tests failed." }
+$eksModule = Join-Path $infra "modules/eks"
+& $TerraformPath "-chdir=$eksModule" init -backend=false -input=false -lockfile=readonly
+if ($LASTEXITCODE -ne 0) { throw "Mock EKS test initialization failed." }
+& $TerraformPath "-chdir=$eksModule" test -no-color
+if ($LASTEXITCODE -ne 0) { throw "Mock EKS tests failed." }
 & (Join-Path $PSScriptRoot "scan-terraform.ps1")
 Write-Host "All three Terraform roots passed fmt/init/validate. No AWS operations were performed."

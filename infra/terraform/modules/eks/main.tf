@@ -243,6 +243,10 @@ output "node_group_name" {
   description = "Managed node group name."
   value       = aws_eks_node_group.this.node_group_name
 }
+output "cluster_security_group_id" {
+  description = "EKS-created cluster security group, shared by the control plane ENIs, managed nodes and pods."
+  value       = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
+}
 output "addon_versions" {
   description = "Explicitly configured add-on pins."
   value       = var.config.addon_versions

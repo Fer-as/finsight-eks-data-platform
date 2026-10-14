@@ -33,6 +33,18 @@ module "eks" {
   # Ensure private NAT/S3 routes and flow logging exist before workers bootstrap.
   depends_on = [module.network]
 }
+# The only inbound path from outside the cluster security group: the public NLB's group may
+# reach the ingress controller pods' traffic and health-check ports (IP target mode).
+# See docs/infrastructure/network-security.md.
+resource "aws_vpc_security_group_ingress_rule" "nlb_to_ingress_pods" {
+  for_each                     = { for p in module.network.ingress_target_ports : tostring(p) => p }
+  security_group_id            = module.eks.cluster_security_group_id
+  referenced_security_group_id = module.network.public_ingress_security_group_id
+  description                  = "Public NLB to ingress controller pods (traffic and health checks)"
+  ip_protocol                  = "tcp"
+  from_port                    = each.value
+  to_port                      = each.value
+}
 module "etl_role" {
   source          = "../../../modules/pod-role"
   name            = "${module.config.name}-etl"
@@ -109,8 +121,10 @@ output "node_group_name" {
 output "network" {
   description = "IDs for later verification and teardown inventory."
   value = {
-    vpc_id            = module.network.vpc_id, private_subnet_ids = module.network.private_subnet_ids,
-    public_subnet_ids = module.network.public_subnet_ids, nat_gateway_id = module.network.nat_gateway_id
+    vpc_id                           = module.network.vpc_id, private_subnet_ids = module.network.private_subnet_ids,
+    public_subnet_ids                = module.network.public_subnet_ids, nat_gateway_id = module.network.nat_gateway_id,
+    public_ingress_security_group_id = module.network.public_ingress_security_group_id,
+    cluster_security_group_id        = module.eks.cluster_security_group_id
   }
 }
 output "application_hostname" {

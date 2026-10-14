@@ -21,8 +21,30 @@ variable "config" {
     error_message = "Use two distinct AZs, two public and two private IPv4 subnets."
   }
 }
+variable "public_listener_ports" {
+  description = "Internet-facing NLB listener ports: HTTPS, plus HTTP only for the redirect to HTTPS."
+  type        = set(number)
+  default     = [80, 443]
+  validation {
+    condition     = length(var.public_listener_ports) > 0 && alltrue([for p in var.public_listener_ports : contains([80, 443], p)])
+    error_message = "Only ports 80 and 443 may be open to the internet."
+  }
+}
+variable "ingress_target_ports" {
+  description = "Ingress controller pod ports the NLB may reach: HTTP, HTTPS and the readiness/health-check port."
+  type        = set(number)
+  default     = [80, 443, 8081]
+  validation {
+    condition = length(var.ingress_target_ports) > 0 && alltrue([
+      for p in var.ingress_target_ports : p >= 1 && p <= 65535 && floor(p) == p && !contains([22, 3389], p)
+    ])
+    error_message = "Use whole TCP ports 1-65535; administrative ports such as 22 and 3389 are not allowed."
+  }
+}
 locals {
   zones = { for i, az in var.config.availability_zones : az => i }
+  # One egress rule per (private subnet, target port): the NLB can reach only ingress pods.
+  ingress_egress = { for pair in setproduct(var.config.private_cidrs, var.ingress_target_ports) : "${pair[0]}:${pair[1]}" => pair }
   ranges = {
     for cidr in concat([var.config.vpc_cidr], var.config.public_cidrs, var.config.private_cidrs) : cidr => {
       first = sum([for i, octet in split(".", cidrhost(cidr, 0)) : tonumber(octet) * pow(256, 3 - i)])
@@ -113,6 +135,36 @@ resource "aws_vpc_endpoint" "s3" {
   # Identity/bucket policies authorize data access. ECR layer downloads need regional S3 too.
   tags = { Name = "${var.name}-s3" }
 }
+# Frontend security group for the internet-facing NLB that the AWS Load Balancer Controller
+# creates for the F5 NGINX Service. It is attached through the Service annotation
+# service.beta.kubernetes.io/aws-load-balancer-security-groups, not by Terraform.
+resource "aws_security_group" "public_ingress" {
+  #checkov:skip=CKV2_AWS_5:Attached to the NLB by the AWS Load Balancer Controller via the Service annotation, outside Terraform. See docs/infrastructure/network-security.md.
+  name        = "${var.name}-public-ingress"
+  description = "Internet-facing NLB for the F5 NGINX Ingress Controller"
+  vpc_id      = aws_vpc.this.id
+  tags        = { Name = "${var.name}-public-ingress" }
+  # No inline rules: Terraform removes the default allow-all egress, so only the rules below apply.
+}
+resource "aws_vpc_security_group_ingress_rule" "public_listener" {
+  # Port 80 is public only for NGINX's HTTP-to-HTTPS redirect. See docs/infrastructure/network-security.md.
+  for_each          = { for p in var.public_listener_ports : tostring(p) => p }
+  security_group_id = aws_security_group.public_ingress.id
+  description       = each.value == 443 ? "Public HTTPS to the application" : "Public HTTP, redirected to HTTPS"
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "tcp"
+  from_port         = each.value
+  to_port           = each.value
+}
+resource "aws_vpc_security_group_egress_rule" "to_ingress_pods" {
+  for_each          = local.ingress_egress
+  security_group_id = aws_security_group.public_ingress.id
+  description       = "NLB to ingress controller pods (traffic and health checks) in a private subnet"
+  cidr_ipv4         = each.value[0]
+  ip_protocol       = "tcp"
+  from_port         = each.value[1]
+  to_port           = each.value[1]
+}
 resource "aws_cloudwatch_log_group" "flow" {
   #checkov:skip=CKV_AWS_158:CloudWatch default AES-GCM encryption is retained for seven-day assessment logs; no independent key-control requirement. See docs/evidence/day2-terraform-validation.md finding LOGS-KMS.
   name              = "/finsight/${var.name}/vpc-flow"
@@ -179,4 +231,12 @@ output "public_subnet_ids" {
 output "nat_gateway_id" {
   description = "Single NAT ID for teardown verification."
   value       = aws_nat_gateway.this.id
+}
+output "public_ingress_security_group_id" {
+  description = "Frontend security group for the internet-facing NLB; set on the NGINX Service annotation."
+  value       = aws_security_group.public_ingress.id
+}
+output "ingress_target_ports" {
+  description = "Pod ports the NLB may reach; the workload security group must allow these from the NLB group."
+  value       = var.ingress_target_ports
 }
