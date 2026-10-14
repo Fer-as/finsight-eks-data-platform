@@ -1,7 +1,8 @@
 # FinSight infrastructure (Day 2)
 
-Local implementation only. No AWS resources have been provisioned. The working Day 1
-application is unchanged. See [validation evidence](../../docs/evidence/day2-terraform-validation.md).
+Bootstrap and foundation were applied on 14 October 2026; the platform remains local code
+only. The working Day 1 application is unchanged. See [deployment evidence](../../docs/evidence/day2-aws-bootstrap-foundation.md)
+and the [controller review](../../docs/infrastructure/load-balancer-controller.md).
 
 ## Structure and ownership
 
@@ -10,7 +11,7 @@ application is unchanged. See [validation evidence](../../docs/evidence/day2-ter
 | `bootstrap/` | Encrypted, versioned, private state bucket and separate S3 access-log destination | Retain; initially local state, then migrate |
 | `environments/dev/foundation/` | Data bucket, ECR repositories, GitHub OIDC roles/provider if explicitly requested | Retain across EKS rebuilds |
 | `environments/dev/platform/` | VPC, NAT, endpoint, flow logs, EKS, nodes, add-ons, workload identities | Disposable after approved teardown |
-| `modules/` | Eight reusable, repository-owned modules | Versioned with the Git commit |
+| `modules/` | Reusable, repository-owned modules | Versioned with the Git commit |
 
 No Kubernetes/Helm providers, application manifests, GitOps configuration, DNS records,
 hosted zone creation or CI workflows are included. Separate roots do not read each other's
@@ -59,7 +60,8 @@ git ls-files --others --exclude-standard
 ```
 
 The validation script checks formatting, initializes each root with `-backend=false` and
-`-lockfile=readonly`, validates, runs the nine provider-free/mocked tests, and runs the pinned
+`-lockfile=readonly` using separate `TF_DATA_DIR` directories under ignored
+`.cache/terraform-validation/`, validates, runs the 32 provider-free/mocked tests, and runs the pinned
 Checkov Docker scanner. Docker Desktop and the cached image from `infra/checkov-image.txt`
 are required; a missing scanner now fails validation instead of silently skipping security.
 Pass `-Format` to apply formatting. It uses Terraform on PATH or the
@@ -67,6 +69,8 @@ repo-local `.cache/terraform/terraform.exe`. Public registry access can be requi
 with a populated cache. Do not run a real `plan` during this local-only review: it can
 read AWS and state. [Evidence](../../docs/evidence/day2-terraform-validation.md) distinguishes
 static validation from deployed verification.
+Isolated metadata is required even with `-backend=false`: initialization can otherwise load
+an existing S3 backend cache. The script leaves the operator's deployed backend caches intact.
 
 Run the scanner alone with `powershell -NoProfile -ExecutionPolicy Bypass -File
 .\scripts\scan-terraform.ps1`. It uses a read-only Terraform mount, no container network,
@@ -80,8 +84,9 @@ $image = (Get-Content infra/checkov-image.txt -Raw).Trim()
 docker --config .cache/checkov/docker-config pull $image
 ```
 
-Current result: 130 passed, 0 failed, **15 resource-scoped exceptions**, not 15 remediated
-controls. Review the [finding dispositions](../../docs/evidence/day2-terraform-validation.md)
+Current local result (14 October 2026, issue #34): 181 passed, 0 failed,
+**16 resource-scoped exceptions**, not 16 remediated controls; this scan includes test fixtures.
+Review the [finding dispositions](../../docs/evidence/day2-terraform-validation.md)
 before provisioning, extending the assessment or changing data classification. No global
 check exclusions or soft-fail options are configured.
 
@@ -110,9 +115,12 @@ check exclusions or soft-fail options are configured.
   [network-security.md](../../docs/infrastructure/network-security.md).
   NAT permits outbound AWS/HTTPS access, including EKS Auth for Pod Identity. Workload
   NetworkPolicies and ingress-specific hardening belong to the later Kubernetes phase.
-- Pod Identity binds CNI, EBS CSI, the future ETL, ExternalDNS and cert-manager to specific
-  service accounts/cluster. The two DNS roles can change only named records in the one hosted
-  zone and never each other's; see [dns-and-certificates.md](../../docs/infrastructure/dns-and-certificates.md).
+- Pod Identity binds CNI, EBS CSI, the future ETL, ExternalDNS, cert-manager and the AWS Load
+  Balancer Controller to specific service accounts/cluster. The two DNS roles can change only
+  named records in the one hosted zone and never each other's; see
+  [dns-and-certificates.md](../../docs/infrastructure/dns-and-certificates.md). The controller
+  uses AWS's pinned v3.6.0 policy, scoped to this cluster's tag, VPC and `k8s-*` NLBs; see
+  [load-balancer-controller.md](../../docs/infrastructure/load-balancer-controller.md).
   The node role has worker and ECR-pull policies, not S3 or CNI permissions. AWS-managed
   CNI/CSI policies have necessary broader EC2 rights and can evolve independently of provider pins.
 - GitHub trust uses exact audience and repository/environment subjects, never wildcard

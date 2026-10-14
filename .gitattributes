@@ -1,0 +1,2 @@
+# Vendored upstream files are checked by SHA-256 in Terraform; keep their exact bytes.
+infra/terraform/modules/load-balancer-controller-policy/iam_policy-*.json -text

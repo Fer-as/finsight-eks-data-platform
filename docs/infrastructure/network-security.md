@@ -92,7 +92,8 @@ path. Module validations reject any public listener port other than 80 or 443, a
 
 ## Settings the later installs must use
 
-For the F5 NGINX Service (#20), with the AWS Load Balancer Controller (#34):
+For the F5 NGINX Service (#20), with the AWS Load Balancer Controller (#34; controller values and
+identity in [load-balancer-controller.md](load-balancer-controller.md)):
 
 ```yaml
 service.beta.kubernetes.io/aws-load-balancer-type: external
