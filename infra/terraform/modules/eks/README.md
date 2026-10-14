@@ -14,6 +14,7 @@ AWS provider default_tags; EC2/EBS tag specifications are passed explicitly to e
 | `name` | `string` | Cluster/resource prefix. |
 | `subnet_ids` | `list(string)` | Private subnet IDs. |
 | `tags` | `map(string)` | Common tags propagated to node EC2/EBS resources; default empty. |
+| `permissions_boundary` | `string` | Required `*-workload-boundary` policy ARN set on the cluster and node roles. |
 | `config` | `object` | version, public_access_cidrs, admin_role_arns, instance_types, min_size, desired_size, max_size, disk_size_gb, optional ami_release_version, log_retention_days, compatibility_verified, addon_versions. Required fields/types/guards are declared in main.tf. |
 
 ## Outputs

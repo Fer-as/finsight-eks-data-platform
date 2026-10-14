@@ -14,7 +14,7 @@ Current status, 14 October 2026. Task board (public): https://github.com/users/F
 | G03 | NGINX Ingress Controller | 10 | Not started | F5 NGINX chosen (assessor acceptance pending); retired community ingress-nginx and Traefik not used | Install, Ingress routing, tests |
 | G04 | CertManager and ExternalDNS | 20 | In progress | Public hosted zone exists; ExternalDNS and cert-manager Pod Identity roles in Terraform (not applied, #6) | Controllers, issuers, IAM, HTTPS, renewal and DNS lifecycle tests |
 | G05 | Monitoring Setup | 15 | Not started | None | Prometheus, Grafana, ingress and application metrics |
-| G06 | Pipeline 1: Terraform | 10 | In progress | Local validation/scan scripts; plan-only OIDC role applied and verified | Workflow, gated apply role, failure handling, run evidence |
+| G06 | Pipeline 1: Terraform | 10 | In progress | Local validation/scan scripts; plan-only OIDC role applied and verified; apply role, scoped apply policies and mandatory workload boundary coded and tested locally (#8, Option A; not applied) | Foundation apply, GitHub environments, workflow, failure handling, run evidence |
 | G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | In progress | Local tests (37 Python, 6 frontend); ECR repositories and image role applied | Workflow, production frontend and ETL images, Trivy, ECR push, GitOps deploy, failing-run evidence |
 | G08 | ArgoCD GitOps | 15 | Not started | None | Argo CD, applications, sync and drift evidence |
 | G09 | Architecture Design | 10 | Not started | Mermaid diagrams only | Original draw.io diagram and export |
