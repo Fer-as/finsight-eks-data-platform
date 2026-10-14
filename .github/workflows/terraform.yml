@@ -1,0 +1,134 @@
+# Pipeline 1 (issue #10): Terraform checks for every root and a platform plan with the plan-only
+# OIDC role on pull requests. Nothing here can apply: the plan role is read-only apart from its
+# state lock object, and the approval-gated apply is a separate job (issue #11).
+# See docs/infrastructure/terraform-ci.md.
+name: Terraform
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "infra/terraform/**"
+      - "infra/checkov-image.txt"
+      - "scripts/validate-terraform.ps1"
+      - "scripts/scan-terraform.ps1"
+      - "scripts/new-terraform-backend-config.ps1"
+      - "scripts/ci/**"
+      - ".github/workflows/terraform.yml"
+
+# Nothing by default; each job grants only what it needs.
+permissions: {}
+
+env:
+  TF_IN_AUTOMATION: "1"
+  TF_INPUT: "0"
+  TERRAFORM_VERSION: "1.16.2"
+  PLATFORM_ROOT: infra/terraform/environments/dev/platform
+
+jobs:
+  checks:
+    name: fmt, validate, test and Checkov (all roots)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    # A newer push to the same pull request supersedes these checks.
+    concurrency:
+      group: terraform-checks-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    env:
+      # One provider download per run, shared by every init (lock files carry linux_amd64 hashes).
+      TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.cache/terraform-plugin-cache
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          # The wrapper echoes command output into step outputs and logs.
+          terraform_wrapper: false
+      - name: Pull the digest-pinned Checkov image
+        shell: bash
+        run: |
+          mkdir -p "$TF_PLUGIN_CACHE_DIR"
+          docker pull "$(tr -d '[:space:]' < infra/checkov-image.txt)"
+      # The same script developers run locally: fmt -check, init -backend=false and validate for
+      # all three roots (no backend, no credentials), the offline module tests and Checkov.
+      - name: Run Terraform checks
+        shell: pwsh
+        run: ./scripts/validate-terraform.ps1
+
+  plan:
+    name: Plan platform (plan-only role)
+    needs: checks
+    # Fork pull requests never get an OIDC token or environment secrets; skip them explicitly too.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # The plan role trusts only this environment's exact OIDC subject. Configure the environment
+    # (variable AWS_ROLE_ARN, secret TERRAFORM_CONFIG_JSON) before this job first runs.
+    environment: dev-infrastructure
+    permissions:
+      contents: read
+      id-token: write
+    # One Terraform operation per state at a time; never cancel a run that may hold the lock.
+    concurrency:
+      group: terraform-state-dev-platform
+      cancel-in-progress: false
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      - name: Write private configuration (masked)
+        id: config
+        env:
+          TERRAFORM_CONFIG_JSON: ${{ secrets.TERRAFORM_CONFIG_JSON }}
+        run: ./scripts/ci/write-terraform-ci-config.ps1
+      - name: Assume the plan-only role (OIDC, no stored keys)
+        if: steps.config.outputs.plan_enabled == 'true'
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: eu-west-2
+          role-session-name: finsight-plan-${{ github.run_id }}
+          role-duration-seconds: 1800
+          mask-aws-account-id: true
+      - name: Confirm the session
+        if: steps.config.outputs.plan_enabled == 'true'
+        run: ./scripts/ci/assert-terraform-ci-account.ps1
+      - name: Initialise the S3 backend
+        if: steps.config.outputs.plan_enabled == 'true'
+        working-directory: ${{ env.PLATFORM_ROOT }}
+        run: terraform init -input=false -lockfile=readonly -backend-config=backend.hcl -no-color
+      # Plan text contains attribute values, so it goes to a temporary file, not the public log.
+      # Diagnostics still reach the log through stderr, after masking.
+      - name: Plan (state lock held; output kept out of the log)
+        if: steps.config.outputs.plan_enabled == 'true'
+        working-directory: ${{ env.PLATFORM_ROOT }}
+        run: |
+          terraform plan -input=false -lock-timeout=5m -no-color -out=platform.tfplan > "$env:RUNNER_TEMP/platform-plan.txt"
+          if ($LASTEXITCODE -ne 0) { throw "terraform plan failed; see the diagnostics above. No force-unlock is attempted." }
+      - name: Summarise the plan
+        if: steps.config.outputs.plan_enabled == 'true'
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: ./scripts/ci/summarize-terraform-plan.ps1 -Root "$env:PLATFORM_ROOT" -PlanFile platform.tfplan -Commit "$env:HEAD_SHA"
+      # Pull-request plans are for review only and are never applied, so the binary plan (which
+      # holds state values) is not uploaded: artifacts of a public repository are public.
+      - name: Remove the plan, configuration and backend files
+        if: always()
+        run: |
+          Remove-Item -Force -ErrorAction SilentlyContinue -LiteralPath "$env:RUNNER_TEMP/platform-plan.txt", "$env:PLATFORM_ROOT/platform.tfplan", "infra/terraform/config/local.json"
+          Get-ChildItem -Path infra/terraform -Recurse -Filter backend.hcl | Remove-Item -Force
