@@ -4,9 +4,16 @@
 operating procedure, not a record of commands run. No apply, destroy, backend connection,
 AWS CLI or Kubernetes command was executed during Day 2.
 
+Status on 14 October 2026: bootstrap and foundation were applied and bootstrap state was
+migrated to S3, each with separate owner approval; see the
+[deployment readiness record](deployment-readiness.md). The platform root has not been
+deployed, and every remaining step below still needs its own approval. Quote every
+`-flag=value` argument when running these commands in Windows PowerShell 5.1.
+
 ## 1. Local preparation and review
 
-1. Read the infrastructure README, compatibility record and cost estimate.
+1. Read the infrastructure README, compatibility record, cost estimate and the
+   [deployment readiness record](deployment-readiness.md), which lists current blockers.
 2. Copy `infra/terraform/config/local.json.example` to `local.json` in the same directory.
    Supply intended account, three distinct unique state/data/access-log bucket names, administrator role ARN(s), explicit
    public API /32 CIDRs, existing public zone ID/name and hostname. Never add credentials.
@@ -25,7 +32,7 @@ AWS CLI or Kubernetes command was executed during Day 2.
 
 Obtain approval for **read-only AWS account access first**: verify intended identity/account,
 zone ownership, AZ capacity, quotas, existing GitHub provider, EKS/add-on compatibility and
-AMI release. These checks are prohibited in the current local-only task. Record the results,
+AMI release. These were completed on 13-14 October 2026 (see the readiness record). Record the results,
 supply all exact add-on pins and then set `compatibility_verified=true`.
 
 Obtain a separate provisioning approval covering account, Region, reviewed resource inventory,
@@ -54,8 +61,8 @@ local state; no S3 backend is configured yet. If resources already exist, stop a
 their state/import ownership under a separate review instead of creating duplicates.
 
 ```powershell
-& $tf "-chdir=$bootstrap" init -input=false
-& $tf "-chdir=$bootstrap" plan -out=bootstrap.tfplan
+& $tf "-chdir=$bootstrap" init "-input=false"
+& $tf "-chdir=$bootstrap" plan "-out=bootstrap.tfplan"
 & $tf "-chdir=$bootstrap" show bootstrap.tfplan
 # Only after approval of this saved plan:
 & $tf "-chdir=$bootstrap" apply bootstrap.tfplan
@@ -77,7 +84,7 @@ Then enable the S3 backend and migrate the existing state:
 
 ```powershell
 Copy-Item "$bootstrap/backend.tf.example" "$bootstrap/backend.tf"
-& $tf "-chdir=$bootstrap" init -migrate-state -backend-config=backend.hcl
+& $tf "-chdir=$bootstrap" init -migrate-state "-backend-config=backend.hcl"
 & $tf "-chdir=$bootstrap" state list
 & $tf "-chdir=$bootstrap" plan
 ```
@@ -102,8 +109,8 @@ Never force-unlock until the lock owner/run is confirmed stopped and recovery is
 Foundation owns retained objects and is not included in routine cost teardown:
 
 ```powershell
-& $tf "-chdir=$foundation" init -backend-config=backend.hcl -input=false
-& $tf "-chdir=$foundation" plan -out=foundation.tfplan
+& $tf "-chdir=$foundation" init "-backend-config=backend.hcl" "-input=false"
+& $tf "-chdir=$foundation" plan "-out=foundation.tfplan"
 & $tf "-chdir=$foundation" show foundation.tfplan
 # Only after approval of this saved plan:
 & $tf "-chdir=$foundation" apply foundation.tfplan
@@ -112,8 +119,8 @@ Foundation owns retained objects and is not included in routine cost teardown:
 Verify retained S3/ECR security settings and GitHub trust, then plan the expensive platform:
 
 ```powershell
-& $tf "-chdir=$platform" init -backend-config=backend.hcl -input=false
-& $tf "-chdir=$platform" plan -out=platform.tfplan
+& $tf "-chdir=$platform" init "-backend-config=backend.hcl" "-input=false"
+& $tf "-chdir=$platform" plan "-out=platform.tfplan"
 & $tf "-chdir=$platform" show platform.tfplan
 # Only after approval of this saved plan and the running-cost window:
 & $tf "-chdir=$platform" apply platform.tfplan
@@ -186,7 +193,7 @@ retain foundation, bootstrap, existing zone, data, tagged images and Terraform s
 6. Review a destroy plan for the **platform root only**:
 
 ```powershell
-& $tf "-chdir=$platform" plan -destroy -out=platform-destroy.tfplan
+& $tf "-chdir=$platform" plan -destroy "-out=platform-destroy.tfplan"
 & $tf "-chdir=$platform" show platform-destroy.tfplan
 # After approval of this exact saved destroy plan:
 & $tf "-chdir=$platform" apply platform-destroy.tfplan
