@@ -149,57 +149,122 @@ cannot tag untagged groups, so CI cannot complete an apply that creates a VPC.
 
 ## Controls: implemented vs still to configure
 
+Status on 14 October 2026.
+
 | Control | Status |
 |---|---|
-| Exact immutable OIDC subject per environment, no wildcards | Implemented (Terraform, tested); applied for plan and image roles only |
-| Separate plan (read-only) and apply roles | Implemented (Terraform, tested); apply role not applied |
-| Apply permissions scoped, boundary mandatory | Implemented (Terraform, synthetic tests); not applied |
-| Protected `dev-infrastructure-apply` environment (reviewer, `main` only) | **Not configured**: GitHub setting, below |
-| No AWS credentials for untrusted pull requests | GitHub behaviour (fork PRs get no OIDC token) plus workflow rule: never `pull_request_target`; **not built** |
-| Saved-plan checksum and commit binding | Workflow rule (#10/#11); **not built** |
-| No unapproved destroy or replacement | Workflow rule (#10/#11); **not built**. IAM cannot express it, because the apply role must be able to delete platform resources for replacements |
-| Required reviewer and self-review limits | GitHub setting; **not configured** |
+| Exact immutable OIDC subject per environment, no wildcards | Implemented and applied (plan, image and apply roles) |
+| Separate plan (read-only) and apply roles | Implemented and applied |
+| Apply permissions scoped, boundary mandatory | Applied (foundation, 11 resources); synthetic tests only, no CI apply has run |
+| Protected `dev-infrastructure-apply` environment | Configured: reviewer Fer-as, `main` only, administrator bypass off, variable `AWS_ROLE_ARN` |
+| Protected `dev-infrastructure` environment | Configured: reviewer Fer-as, `refs/pull/*/merge` only, administrator bypass off, variable `AWS_ROLE_ARN` (plan role), secret `TERRAFORM_CONFIG_JSON` |
+| `main` protected | Ruleset: pull request required (0 approvals, single maintainer), no force pushes, no deletion, no bypass |
+| No AWS credentials for untrusted pull requests | Pull-request workflow (#10): `pull_request` trigger only, plan job skipped for fork heads, `permissions: {}` by default; **not yet run** |
+| Plan output does not leak private values | Pull-request workflow (#10): plan text kept out of logs, values masked, summary shows actions and digests only, no binary plan artifact; **not yet run** |
+| Saved-plan, commit and digest binding | Digests produced by `scripts/ci/summarize-terraform-plan.ps1`; enforcement is #11 |
+| No unapproved destroy or replacement | Flagged by the plan summary; the apply gate is #11. IAM cannot express it, because the apply role must be able to delete platform resources for replacements |
+| Required reviewer and self-review limits | Configured; single-maintainer self-approval, not two-person review |
 
-## Required GitHub environment setup (for owner approval; not configured)
+## Pull-request workflow (`.github/workflows/terraform.yml`, issue #10)
+
+- **Trigger:** `pull_request` to `main`, filtered to Terraform, the check scripts and the workflow
+  itself. There is no `pull_request_target`, `workflow_run` or `workflow_dispatch` trigger.
+- **`checks` job:** has no AWS access and only `contents: read`. It runs
+  `scripts/validate-terraform.ps1`, the same script used locally: `fmt -check`, then `init
+  -backend=false` and `validate` for all three roots, then the offline module tests, then Checkov
+  from the digest-pinned image. A newer push to the same pull request cancels it. One provider
+  download is shared through `TF_PLUGIN_CACHE_DIR`; the lock files carry linux_amd64 hashes for this.
+- **`plan` job (platform root only):**
+  - Runs after `checks`, and only when the pull request comes from this repository.
+  - Uses `environment: dev-infrastructure`, and only `contents: read` and `id-token: write`.
+  - Uses `configure-aws-credentials` with `role-to-assume: ${{ vars.AWS_ROLE_ARN }}`. No stored
+    keys are involved, and the account ID is masked.
+  - A script checks that the session is the FinSight Terraform role in the configured account.
+- **Plan steps:**
+  1. `init` against the S3 backend, with a read-only lock file.
+  2. `plan -lock-timeout=5m -out=platform.tfplan`, with stdout written to a temporary file. The
+     plan text holds attribute values, and this public repository's logs are public. Diagnostics
+     still reach the log through stderr, after masking.
+  3. `scripts/ci/summarize-terraform-plan.ps1` writes the step summary. It contains counts per
+     action, resource addresses (account IDs redacted), flags for a destructive plan and for a
+     human-run VPC plan, the commit, the binary plan's SHA-256, and a SHA-256 of the canonical
+     resource and output changes.
+  4. A final step deletes the plan, the configuration and the backend files.
+- **Plan concurrency:** the group is `terraform-state-dev-platform`, and `cancel-in-progress` is
+  off. A run that may hold the state lock is never cancelled, and no `force-unlock` is attempted.
+- **Configuration:** the ignored `config/local.json` comes from the environment secret
+  `TERRAFORM_CONFIG_JSON`, through `scripts/ci/write-terraform-ci-config.ps1`.
+  - The script first masks the account ID, bucket names, zone ID, administrator role ARNs, the
+    operator's API CIDRs and the numeric IDs of the OIDC subject.
+  - It then generates `backend.hcl`.
+  - If `eks.compatibility_verified` is false, it marks the plan as skipped with a notice, and no
+    AWS session is opened.
+- **Pull-request plans are never applied.** The binary plan is not uploaded, because artifacts of
+  a public repository are publicly downloadable.
+
+## Required GitHub environment setup
 
 **Order matters.** GitHub creates an unprotected environment automatically the first time a
-workflow names it. So configure `dev-infrastructure-apply` **before** the foundation apply that
-creates and empowers the apply role. Until then, any collaborator branch could name the environment
-and receive the role with no approval.
+workflow names it. Configure each environment **before** a workflow that names it first runs.
 
 Repository **Settings → Environments**:
 
-1. **`dev-infrastructure-apply`**
-   - Required reviewers: the owner. If there is only one maintainer, GitHub's "Prevent
-     self-review" cannot be satisfied by the person who triggered the run. Either add a second
-     trusted reviewer and enable it, or accept self-approval and document that the review is of
-     the saved plan, not of the code author.
-   - Allow administrators to bypass: **off**.
-   - Deployment branches and tags: **Selected branches → `main` only**.
-   - Wait timer: optional (for example 5 minutes, to give time to cancel).
-   - Secrets and variables: none for AWS. Store only the role ARN as an environment
-     **variable**, taken from the foundation output.
-2. **`dev-infrastructure`** (plan): no reviewers; the role is read-only. Pull-request plans must
-   run on pull-request branches, so leave branch rules open. Only collaborators can trigger it,
-   because fork pull requests receive no OIDC token.
-3. **`dev-images`**: deployment branches `main` only.
+1. **`dev-infrastructure-apply`** (configured 14 October 2026):
+   - **Required reviewers:** the owner, Fer-as.
+   - **Prevent self-review:** off. With one maintainer, this is a self-approval gate: the review is
+     of the saved plan, not an independent two-person review.
+   - **Allow administrators to bypass:** off.
+   - **Deployment branches and tags:** Selected branches, `main` only.
+   - **Variable `AWS_ROLE_ARN`:** the apply role's ARN, read from AWS. It is not a secret.
+   - **No AWS keys.** #11 will also need the `TERRAFORM_CONFIG_JSON` secret here.
+2. **`dev-infrastructure`** (plan; configured 14 October 2026):
+   - **Required reviewers:** Fer-as, with Prevent self-review off. Every pull-request plan job
+     waits for the owner's approval before it can obtain the plan role. This is a deliberate owner
+     choice; the role itself is read-only apart from its lock object.
+   - **Allow administrators to bypass:** off.
+   - **Deployment branches and tags:** Selected, with the single branch rule `refs/pull/*/merge`.
+     GitHub matches the rule against the run's `GITHUB_REF`, which for `pull_request` runs is
+     `refs/pull/<number>/merge`, and `*` does not match `/`. Pushes and other branches cannot use
+     this environment.
+   - **No wait timer.**
+   - **Set 14 October 2026:**
+     - variable `AWS_ROLE_ARN`: the plan role's ARN (`finsight-dev-github-infra-plan`, the
+       foundation output `github_role_arns["infra_plan"]`), read from AWS
+     - secret `TERRAFORM_CONFIG_JSON`: the platform subset of the ignored
+       `infra/terraform/config/local.json`, with only `account_id`, `state_bucket`, `data_bucket`,
+       `eks` and `dns`. `github` and `access_log_bucket` are left out because the platform root
+       doesn't use them. It contains no credentials; storing it as a secret keeps private
+       identifiers out of the repository and masked in logs. Re-upload it whenever those fields
+       change locally, for example when the compatibility gate is passed.
+3. **`dev-images`:** `main` only, with `AWS_ROLE_ARN` set to the image role's ARN. Configure it with
+   the image workflow.
 4. Repository **Actions → General**: keep "Require approval for fork pull requests" enabled.
-5. Branch protection on `main`: require pull requests and reviews, and disallow force pushes, so
-   only reviewed code reaches the apply environment.
+5. `main`: protected by the repository ruleset described above.
 
-## Applying exactly what was approved (workflow rules for #10/#11)
+Workflows reference role ARNs only as `${{ vars.AWS_ROLE_ARN }}`, from a job that names its
+environment explicitly. They never contain an `arn:aws` literal.
+
+## Applying exactly what was approved (rules for #11)
 
 - Never use `pull_request_target` or `workflow_run` triggers with `id-token: write`.
-- The plan job runs on `main` after merge, writes `platform.tfplan`, uploads it as a short-lived
-  artifact with its SHA-256, and publishes the human-readable plan in the run summary.
-- The apply job declares `environment: dev-infrastructure-apply`, runs only on the same
-  workflow run (`needs:` the plan job), downloads that artifact, verifies the SHA-256 and that
-  `github.sha` is unchanged, then runs `terraform apply platform.tfplan`. Terraform itself
-  refuses a saved plan if state changed after planning.
-- If the saved plan contains any `delete` action (destroy or replacement), the apply job stops
-  unless the run was started with an explicit `allow-destroy` input.
-- Per-root concurrency group; no automatic `force-unlock`.
+- **The apply job:**
+  - declares `environment: dev-infrastructure-apply` and uses `role-to-assume:
+    ${{ vars.AWS_ROLE_ARN }}`
+  - shares the `terraform-state-dev-platform` concurrency group
+  - runs only for commits on `main`
+- **Plan binding without publishing the plan.** Artifacts of this public repository are public, so
+  a plaintext binary plan must not be uploaded between jobs. The recommended design:
+  1. The plan job on `main` publishes only its summary and digests.
+  2. After approval, the apply job re-plans the same commit.
+  3. It refuses to continue unless its `changes_sha256` equals the approved one.
+  4. It then applies its own saved plan file in the same job.
 
+  The alternative is a plan artifact encrypted with a key held only in the two environments. Either
+  way, the commit (`github.sha`) must match, and Terraform refuses a saved plan if state changed.
+- **Destructive plans.** If the plan contains any delete or replacement, the apply job stops unless
+  the run was started with an explicit `allow-destroy` input.
+- **New VPCs.** If the plan creates a VPC, CI never applies it; a human runs that apply.
+- **Locking.** Per-root concurrency; no automatic `force-unlock`.
 ## What is not proven yet (synthetic vs real)
 
 The tests in `modules/terraform-ci-policies/tests` evaluate the policy text with a small model
@@ -246,19 +311,22 @@ Residual risks:
   project's gateway. AWS authorises only the route table.
 - **Visibility.** Read-only describes show other projects' metadata.
 
-## Deployment order and expected changes
+## Deployment order and status
 
-1. Configure the `dev-infrastructure-apply` environment protection (above) and approve it.
-2. Foundation (human, separately approved) adds **11 resources**:
-   - the boundary policy (1)
-   - the apply role and its inline state policy (2)
-   - four apply managed policies (4)
-   - four policy attachments (4)
+1. **Done, 14 October 2026:** the `dev-infrastructure-apply` environment protection was
+   configured before the foundation apply.
+2. **Done, 14 October 2026:** the foundation was applied from a reviewed saved plan, with exactly
+   11 resources added (0 changed, 0 destroyed):
+   - the boundary policy
+   - the apply role and its inline state policy
+   - the four apply managed policies
+   - the four attachments
 
-   Expected plan: about **11 to add**, 0 to change, 0 to destroy. This is an estimate; no plan has
-   been run.
-3. Only after the boundary exists can any platform plan or apply succeed, because every platform
-   role references it.
-4. The administrator applies the initial platform deployment from a reviewed saved plan. It
+   The post-apply plan showed no changes. `AWS_ROLE_ARN` was then set in the environment.
+3. The boundary exists, so platform plans can reference it. A platform plan still needs
+   `eks.compatibility_verified`, which is a separate owner decision.
+4. **Done, 14 October 2026:** `dev-infrastructure` was protected, and its `AWS_ROLE_ARN` and
+   `TERRAFORM_CONFIG_JSON` were set.
+5. The administrator applies the initial platform deployment from a reviewed saved plan. It
    creates the VPC, so CI cannot (see Cross-project isolation).
-5. Build the workflows (#10, #11); CI then applies later platform changes.
+6. #11 builds the approval-gated apply; CI then applies later platform changes.

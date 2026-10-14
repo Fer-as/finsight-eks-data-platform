@@ -72,7 +72,7 @@ for the bootstrap and foundation roots on 14 October 2026 (G02.6).
 | G03 | NGINX Ingress Controller | 10 | Not started | Chart choice planned; nothing installed | R6.4 |
 | G04 | CertManager and ExternalDNS | 20 | In progress | ExternalDNS and cert-manager Pod Identity roles in Terraform (not applied); no controllers or certificates | R6.3-R6.5, R4.7 |
 | G05 | Monitoring Setup | 15 | Not started | Nothing installed | R4.3, R4.4 |
-| G06 | Pipeline 1: Terraform | 10 | In progress | Local validation scripts, applied plan-only role; apply role, scoped apply policies and workload boundary coded and tested offline (#8, not applied); environments and workflows pending | R7.3, R7.5-R7.10, R9.2 |
+| G06 | Pipeline 1: Terraform | 10 | In progress | Local validation scripts; plan-only and apply roles, scoped policies and workload boundary applied (#8); apply environment protected; pull-request checks and plan workflow written (#10, not yet run); approval-gated apply pending (#11) | R7.3, R7.5-R7.10, R9.2 |
 | G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | In progress | Local tests, Dockerfiles, ECR repositories and publisher role exist; no workflow; production frontend image missing | R7.1-R7.9, R4.5, R5.1-R5.7, R8.2, R10.4 |
 | G08 | ArgoCD GitOps | 15 | Not started | No manifests or Argo CD | R8.1-R8.5, R4.2 |
 | G09 | Architecture Design | 10 | Not started | Mermaid diagrams only; the draw.io deliverable does not exist | R2.1-R2.4, R1.2 |
@@ -192,7 +192,7 @@ Certificate issuance, renewal, DNS management and the final HTTPS result are tes
 | Field | Record |
 |---|---|
 | Status | In progress |
-| Existing implementation | `scripts/validate-terraform.ps1` and `scan-terraform.ps1` (local); applied role `finsight-dev-github-infra-plan` (plan-only, OIDC) |
+| Existing implementation | `scripts/validate-terraform.ps1` and `scan-terraform.ps1`; `.github/workflows/terraform.yml` (#10, not yet run); applied roles `finsight-dev-github-infra-plan` (plan-only) and `finsight-dev-github-infra-apply` (#8); protected `dev-infrastructure-apply` |
 | Missing | Workflow; an apply role used only behind a protected GitHub environment with required reviewers; plan/apply separation; failure handling |
 | Runtime / repository evidence | Workflow file; successful and failing runs; environment protection settings |
 | Objective verification | A pull request gets checks and a plan; apply waits for a reviewer; a bad change fails |
@@ -201,13 +201,13 @@ Certificate issuance, renewal, DNS management and the final HTTPS result are tes
 
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
-| G06.1 | On pull requests: `terraform fmt -check`, `validate`, `terraform test` and Checkov for all roots | In progress (local scripts only) | Workflow and run | `.github/workflows/` | A formatting error fails the run |
-| G06.2 | Plan runs with the plan-only OIDC role against remote state with locking, and its summary is posted to the run | Not started | Run with plan summary | `.github/workflows/`, `docs/screenshots/cicd/` | Plan shown; the role cannot write resources |
+| G06.1 | On pull requests: `terraform fmt -check`, `validate`, `terraform test` and Checkov for all roots | In progress ([#10](https://github.com/Fer-as/finsight-eks-data-platform/issues/10): `checks` job in `.github/workflows/terraform.yml` runs `scripts/validate-terraform.ps1`; validated locally and on Linux; no run yet) | Workflow and run | `.github/workflows/` | A formatting error fails the run |
+| G06.2 | Plan runs with the plan-only OIDC role against remote state with locking, and its summary is posted to the run | In progress (#10: `plan` job written; needs the `dev-infrastructure` environment and `eks.compatibility_verified` before a real plan; no run yet) | Run with plan summary | `.github/workflows/`, `docs/screenshots/cicd/` | Plan shown; the role cannot write resources |
 | G06.3 | Controlled deployment: apply runs only from the reviewed saved plan, through a protected environment with required reviewers, using a separate least-privilege apply role | In progress ([#8](https://github.com/Fer-as/finsight-eks-data-platform/issues/8): separate apply role trusting only the exact `dev-infrastructure-apply` environment subject, platform state and lock access only; Option A approved and coded: mandatory `finsight-dev-workload-boundary` on every platform role, scoped roles/identity/network apply policies (exact platform role names, owned-parent EC2 creation, no adoption of untagged resources) and explicit guardrail denies, synthetic allow/deny tests, independent review; design and environment setup in `docs/infrastructure/terraform-ci.md`; not applied; environments and workflow pending) | Workflow, environment protection, apply role | `.github/workflows/`, `infra/terraform/modules/github-oidc` | The apply job pauses for approval; the plan role alone cannot apply |
 | G06.4 | Costly or destructive actions (platform apply, any destroy or replacement) require explicit manual approval and are never automatic | Not started | Workflow conditions | `.github/workflows/` | A plan containing deletes is blocked without approval |
 | G06.5 | Error handling: fail fast, a per-root concurrency group, no automatic force-unlock, clear failure summaries | Not started | Workflow | `.github/workflows/` | Two concurrent runs serialise; a lock conflict fails cleanly |
 | G06.6 | Successful and failing runs recorded | Not started | Run screenshots or links | `docs/screenshots/cicd/` | One passing and one deliberately failing run |
-| G06.7 | No state or secrets in artifacts or logs; plan artifacts short-lived and access-restricted | Not started | Workflow settings | `.github/workflows/` | Review artifacts and logs |
+| G06.7 | No state or secrets in artifacts or logs; plan artifacts short-lived and access-restricted | In progress (#10: plan text kept out of public logs, private values masked, value-free summary, no plan artifact; no run yet) | Workflow settings | `.github/workflows/` | Review artifacts and logs |
 
 ### G07 Pipeline 2: Security, Docker and Kubernetes (30 points)
 
@@ -373,14 +373,14 @@ Each screenshot must come from the real deployed environment and be dated in its
 |---|---|---|---|---|---|
 | R7.1 | Application tests run in CI for the API, ETL and frontend | Not started | Workflow and passing run | `.github/workflows/`, `docs/screenshots/cicd/` | A failing test fails the run |
 | R7.2 | Build matrix used only where it removes duplication (e.g. one job definition building api, etl and frontend images); no matrix for its own sake | Not started | Workflow | `.github/workflows/` | Review: no copy-pasted jobs; matrix entries map to real artefacts |
-| R7.3 | Terraform fmt, validate, tests and Checkov run in CI | In progress (local scripts exist) | Workflow and run | `.github/workflows/`, `scripts/validate-terraform.ps1` | Introduce a formatting error on a branch and see the run fail |
+| R7.3 | Terraform fmt, validate, tests and Checkov run in CI | In progress (#10 workflow written; no run yet) | Workflow and run | `.github/workflows/`, `scripts/validate-terraform.ps1` | Introduce a formatting error on a branch and see the run fail |
 | R7.4 | Trivy scans every image before publishing, failing on HIGH/CRITICAL fixable findings, with documented exceptions | Not started | Workflow, results, exceptions file | `.github/workflows/`, `docs/evidence/` | Results attached to the run; exceptions have reasons and expiry dates |
-| R7.5 | AWS access only through GitHub OIDC roles; no long-lived AWS keys in GitHub | Not started (roles exist in AWS) | Workflow `permissions: id-token: write`, repository secret list | `.github/workflows/` | Repository and environment secrets contain no AWS access keys |
-| R7.6 | Role ARNs supplied as GitHub environment variables in `dev-infrastructure` and `dev-images`, taken from Terraform outputs, not hard-coded in workflow files | Not started | Environment settings, workflow references | GitHub settings, `.github/workflows/` | `grep` for `arn:aws` in workflows returns nothing |
+| R7.5 | AWS access only through GitHub OIDC roles; no long-lived AWS keys in GitHub | In progress (roles applied; plan job uses OIDC only; repository and environment secrets contain no AWS keys) | Workflow `permissions: id-token: write`, repository secret list | `.github/workflows/` | Repository and environment secrets contain no AWS access keys |
+| R7.6 | Role ARNs supplied as GitHub environment variables in `dev-infrastructure` and `dev-images`, taken from Terraform outputs, not hard-coded in workflow files | In progress (`AWS_ROLE_ARN` set in `dev-infrastructure-apply`; workflow uses `vars.AWS_ROLE_ARN`, no `arn:aws` literal; `AWS_ROLE_ARN` also set in protected `dev-infrastructure`; `dev-images` not configured) | Environment settings, workflow references | GitHub settings, `.github/workflows/` | `grep` for `arn:aws` in workflows returns nothing |
 | R7.7 | Clear job dependencies (`needs:`): test and scan, then build, then publish, then manifest update | Not started | Workflow graph | `.github/workflows/` | Workflow graph screenshot shows the intended order |
-| R7.8 | No unnecessary repeated work: path filters, a concurrency group with cancel-in-progress, dependency caching, and each check run once per change | Not started | Workflow | `.github/workflows/` | A docs-only change does not run image builds; a pushed fix cancels the superseded run |
-| R7.9 | Pinned action versions (commit SHA or exact tag) and least-privilege `permissions:` per workflow | Not started | Workflow | `.github/workflows/` | Review; Checkov GitHub Actions checks pass |
-| R7.10 | Infrastructure plan runs in CI with the plan-only role; apply stays a reviewed manual step | Not started | Workflow and run | `.github/workflows/` | The plan role cannot apply (its IAM policy is read-only apart from the lock file) |
+| R7.8 | No unnecessary repeated work: path filters, a concurrency group with cancel-in-progress, dependency caching, and each check run once per change | In progress (Terraform workflow: path filters, per-PR cancel-in-progress for checks, provider plugin cache; plan serialised per state, never cancelled) | Workflow | `.github/workflows/` | A docs-only change does not run image builds; a pushed fix cancels the superseded run |
+| R7.9 | Pinned action versions (commit SHA or exact tag) and least-privilege `permissions:` per workflow | In progress (Terraform workflow: all actions pinned to commit SHAs, `permissions: {}` default, per-job grants; Checkov GitHub Actions 64 passed / 0 failed; actionlint clean) | Workflow | `.github/workflows/` | Review; Checkov GitHub Actions checks pass |
+| R7.10 | Infrastructure plan runs in CI with the plan-only role; apply stays a reviewed manual step | In progress (#10 plan job uses the plan-only role; no apply in the workflow) | Workflow and run | `.github/workflows/` | The plan role cannot apply (its IAM policy is read-only apart from the lock file) |
 
 ### 4.8 Argo CD GitOps and image tagging
 
