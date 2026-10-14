@@ -14,7 +14,7 @@ variable "config" {
   description = "Explicit provider ownership and exact repository OIDC subject prefix/environments."
   type = object({
     create_provider   = bool, existing_provider_arn = string, subject_prefix = string,
-    infra_environment = string, images_environment = string
+    infra_environment = string, images_environment = string, apply_environment = string
   })
   validation {
     condition = (
@@ -24,10 +24,12 @@ variable "config" {
       !strcontains(trimprefix(var.config.subject_prefix, "repo:"), ":") &&
       length(regexall("[*?:]", var.config.infra_environment)) == 0 &&
       length(regexall("[*?:]", var.config.images_environment)) == 0 &&
+      length(regexall("[*?:]", var.config.apply_environment)) == 0 &&
       length(var.config.infra_environment) > 0 && length(var.config.images_environment) > 0 &&
-      var.config.infra_environment != var.config.images_environment
+      length(var.config.apply_environment) > 0 &&
+      length(distinct([var.config.infra_environment, var.config.images_environment, var.config.apply_environment])) == 3
     )
-    error_message = "Supply an exact repository subject prefix (no wildcard/ref/environment suffix) and two distinct named GitHub environments."
+    error_message = "Supply an exact repository subject prefix (no wildcard/ref/environment suffix) and three distinct named GitHub environments."
   }
   validation {
     condition = (
@@ -52,8 +54,9 @@ variable "repository_arns" {
 locals {
   provider_arn = var.config.create_provider ? aws_iam_openid_connect_provider.github[0].arn : var.config.existing_provider_arn
   subjects = {
-    infra_plan = "${var.config.subject_prefix}:environment:${var.config.infra_environment}"
-    images     = "${var.config.subject_prefix}:environment:${var.config.images_environment}"
+    infra_plan  = "${var.config.subject_prefix}:environment:${var.config.infra_environment}"
+    images      = "${var.config.subject_prefix}:environment:${var.config.images_environment}"
+    infra_apply = "${var.config.subject_prefix}:environment:${var.config.apply_environment}"
   }
 }
 resource "aws_iam_openid_connect_provider" "github" {
@@ -143,6 +146,33 @@ resource "aws_iam_role_policy" "infra_plan" {
     ]
   })
 }
+# Apply role for the platform root only, assumable only by jobs that run in the protected apply
+# environment (required reviewers, main only; configured in GitHub). This policy grants the
+# platform state object and its lock only. The AWS permissions to change platform resources are a
+# separate, owner-approved decision (see docs/infrastructure/terraform-ci.md); until then this role
+# cannot create or change infrastructure. It has no access to bootstrap or foundation state, so CI
+# can never modify the GitHub roles, OIDC trust or state buckets that govern it.
+resource "aws_iam_role_policy" "infra_apply_state" {
+  name = "platform-state-only"
+  role = aws_iam_role.this["infra_apply"].id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid       = "ListPlatformStateKeys", Effect = "Allow", Action = ["s3:ListBucket"], Resource = var.state_bucket_arn,
+        Condition = { StringLike = { "s3:prefix" = [var.platform_state_key, "${var.platform_state_key}.tflock"] } }
+      },
+      {
+        Sid      = "ReadWritePlatformState", Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject"],
+        Resource = "${var.state_bucket_arn}/${var.platform_state_key}"
+      },
+      {
+        Sid      = "PlatformStateLock", Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+        Resource = "${var.state_bucket_arn}/${var.platform_state_key}.tflock"
+      }
+    ]
+  })
+}
 variable "zone_id" {
   description = "Existing hosted zone ID; plan role can read only this zone."
   type        = string
@@ -152,6 +182,6 @@ variable "zone_id" {
   }
 }
 output "role_arns" {
-  description = "Separate plan-only and ECR publisher GitHub role ARNs. No CI apply permission."
+  description = "Separate plan-only, ECR publisher and approval-gated platform apply role ARNs."
   value       = { for k, v in aws_iam_role.this : k => v.arn }
 }

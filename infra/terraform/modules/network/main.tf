@@ -21,6 +21,14 @@ variable "config" {
     error_message = "Use two distinct AZs, two public and two private IPv4 subnets."
   }
 }
+variable "permissions_boundary" {
+  description = "Required FinSight workload permissions boundary ARN, set on every role this module creates."
+  type        = string
+  validation {
+    condition     = can(regex("^arn:aws:iam::[0-9]{12}:policy/.+-workload-boundary$", var.permissions_boundary))
+    error_message = "Every FinSight platform role must carry the FinSight workload permissions boundary."
+  }
+}
 variable "public_listener_ports" {
   description = "Internet-facing NLB listener ports: HTTPS, plus HTTP only for the redirect to HTTPS."
   type        = set(number)
@@ -171,7 +179,8 @@ resource "aws_cloudwatch_log_group" "flow" {
   retention_in_days = var.config.log_retention_days
 }
 resource "aws_iam_role" "flow" {
-  name = "${var.name}-flow-logs"
+  name                 = "${var.name}-flow-logs"
+  permissions_boundary = var.permissions_boundary
   assume_role_policy = jsonencode({
     Version = "2012-10-17", Statement = [{
       Effect    = "Allow", Principal = { Service = "vpc-flow-logs.amazonaws.com" }, Action = "sts:AssumeRole",
