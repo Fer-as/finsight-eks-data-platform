@@ -31,7 +31,8 @@ entire `eks.addon_versions` map, replace as a unit. Preserve all five add-on key
 The reserved Project/Environment/ManagedBy tags cannot be overridden.
 
 Defaults deliberately cannot provision: account, names, API CIDRs, administrator roles,
-OIDC subject/provider, hosted zone and two add-on pins need explicit configuration.
+OIDC subject/provider and hosted zone need explicit configuration. All five add-on pins
+default to the London 1.36 defaults recorded in the compatibility record.
 `compatibility_verified=false` blocks platform planning until the approved regional checks
 are recorded. It is an operator attestation, not an AWS verification performed by Terraform.
 Do not set it merely to bypass a validation error.
