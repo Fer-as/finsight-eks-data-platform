@@ -1,0 +1,234 @@
+# Pipeline 1 (issue #11): approval-gated apply of the platform root. Started by hand on main only.
+# The plan job makes a saved plan with the read-only plan role and publishes it only encrypted.
+# After the reviewer approves the protected dev-infrastructure-apply environment, the apply job
+# receives the apply role and the decryption key, proves the artifact is that exact plan, and
+# applies it. Nothing is re-planned. See docs/infrastructure/terraform-ci.md.
+name: Terraform apply
+
+on:
+  # checkov:skip=CKV_GHA_7:This deploys rather than builds. allow_destroy is the deliberate G06.4 destroy gate; it only loosens the gate, the apply still needs reviewer approval, and VPC changes stay refused.
+  workflow_dispatch:
+    inputs:
+      allow_destroy:
+        description: Allow this run's plan to delete, replace or forget resources (the apply still needs approval). VPC and EKS cluster lifecycle changes are always refused.
+        type: boolean
+        default: false
+
+# Nothing by default; each job grants only what it needs.
+permissions: {}
+
+env:
+  TF_IN_AUTOMATION: "1"
+  TF_INPUT: "0"
+  TERRAFORM_VERSION: "1.16.2"
+  PLATFORM_ROOT: infra/terraform/environments/dev/platform
+
+jobs:
+  plan:
+    name: Plan platform for approval (plan-only role)
+    # Manual runs of main only (the environments enforce this too).
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: dev-infrastructure
+    permissions:
+      contents: read
+      id-token: write
+    # Shared with the pull-request plans: one Terraform operation per state, never cancelled.
+    concurrency:
+      group: terraform-state-dev-platform
+      cancel-in-progress: false
+    defaults:
+      run:
+        shell: pwsh
+    outputs:
+      has_changes: ${{ steps.protect.outputs.has_changes }}
+      commit: ${{ steps.protect.outputs.commit }}
+      run_id: ${{ steps.protect.outputs.run_id }}
+      run_attempt: ${{ steps.protect.outputs.run_attempt }}
+      state_key: ${{ steps.protect.outputs.state_key }}
+      backend_sha256: ${{ steps.protect.outputs.backend_sha256 }}
+      config_sha256: ${{ steps.protect.outputs.config_sha256 }}
+      terraform_version: ${{ steps.protect.outputs.terraform_version }}
+      lock_file_sha256: ${{ steps.protect.outputs.lock_file_sha256 }}
+      plan_sha256: ${{ steps.protect.outputs.plan_sha256 }}
+      changes_sha256: ${{ steps.protect.outputs.changes_sha256 }}
+      plan_ciphertext_sha256: ${{ steps.protect.outputs.plan_ciphertext_sha256 }}
+      ci_recipient: ${{ steps.protect.outputs.ci_recipient }}
+      allow_destroy: ${{ steps.protect.outputs.allow_destroy }}
+      plan_artifact_digest: ${{ steps.upload-plan.outputs.artifact-digest }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          # The wrapper echoes command output into step outputs and logs.
+          terraform_wrapper: false
+      - name: Install age
+        uses: ./.github/actions/install-age
+      # Fail closed before any AWS session if the plan could not be published encrypted, or if the
+      # apply environment's decryption key is (wrongly) visible to this job.
+      - name: Require plan encryption recipients and key separation
+        env:
+          PLAN_ENCRYPTION_RECIPIENT: ${{ vars.PLAN_ENCRYPTION_RECIPIENT }}
+          PLAN_REVIEW_RECIPIENT: ${{ vars.PLAN_REVIEW_RECIPIENT }}
+          DECRYPTION_IDENTITY_VISIBLE: ${{ secrets.PLAN_DECRYPTION_IDENTITY }}
+        run: ./scripts/ci/protect-terraform-plan.ps1 -Root "$env:PLATFORM_ROOT" -OutDir "$env:RUNNER_TEMP/protected" -CheckOnly
+      - name: Write private configuration (masked)
+        id: config
+        env:
+          TERRAFORM_CONFIG_JSON: ${{ secrets.TERRAFORM_CONFIG_JSON }}
+        run: ./scripts/ci/write-terraform-ci-config.ps1
+      - name: Require the compatibility gate
+        if: steps.config.outputs.plan_enabled != 'true'
+        run: throw "eks.compatibility_verified is false; the platform cannot be planned or applied."
+      - name: Assume the plan-only role (OIDC, no stored keys)
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: eu-west-2
+          role-session-name: finsight-apply-plan-${{ github.run_id }}
+          role-duration-seconds: 1800
+          mask-aws-account-id: true
+      - name: Confirm the session is the plan role
+        run: ./scripts/ci/assert-terraform-ci-account.ps1 -Role plan
+      - name: Initialise the S3 backend
+        working-directory: ${{ env.PLATFORM_ROOT }}
+        run: terraform init -input=false -lockfile=readonly -backend-config=backend.hcl -no-color
+      # Plan text contains attribute values, so it goes to a temporary file, not the public log.
+      - name: Plan (state lock held; output kept out of the log)
+        working-directory: ${{ env.PLATFORM_ROOT }}
+        run: |
+          terraform plan -input=false -lock-timeout=5m -no-color -out=platform.tfplan > "$env:RUNNER_TEMP/platform-plan.txt"
+          if ($LASTEXITCODE -ne 0) { throw "terraform plan failed; see the diagnostics above. No force-unlock is attempted." }
+      # Gates (no VPC or EKS cluster lifecycle changes or imports, ever; no deletes, replacements or
+      # forgets unless allow_destroy), then encryption.
+      - name: Check gates and encrypt the plan
+        id: protect
+        env:
+          PLAN_ENCRYPTION_RECIPIENT: ${{ vars.PLAN_ENCRYPTION_RECIPIENT }}
+          PLAN_REVIEW_RECIPIENT: ${{ vars.PLAN_REVIEW_RECIPIENT }}
+          ALLOW_DESTROY: ${{ inputs.allow_destroy }}
+        run: ./scripts/ci/protect-terraform-plan.ps1 -Root "$env:PLATFORM_ROOT" -OutDir "$env:RUNNER_TEMP/protected" -AllowDestroy "$env:ALLOW_DESTROY"
+      - name: Upload the encrypted plan (apply job only)
+        id: upload-plan
+        if: steps.protect.outputs.has_changes == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: terraform-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/protected/platform.tfplan.age
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+      - name: Upload the encrypted review copy (reviewer only)
+        if: steps.protect.outputs.has_changes == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: terraform-plan-review-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/protected/platform-plan-review.txt.age
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+      - name: Explain the failure
+        if: failure()
+        run: |
+          "## Terraform plan for approval: failed`n`nNothing was applied. No force-unlock was attempted. A state-lock timeout means another Terraform run holds the lock: wait for it and start a new run. Gate failures (VPC or EKS cluster lifecycle, imports, deletes) and missing encryption recipients are deliberate refusals; see docs/infrastructure/terraform-ci.md." | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+      - name: Remove plans, configuration and backend files
+        if: always()
+        run: |
+          Remove-Item -Force -Recurse -ErrorAction SilentlyContinue -LiteralPath "$env:RUNNER_TEMP/platform-plan.txt", "$env:RUNNER_TEMP/protected", "$env:PLATFORM_ROOT/platform.tfplan", "infra/terraform/config/local.json"
+          Get-ChildItem -Path infra/terraform -Recurse -Filter backend.hcl | Remove-Item -Force
+
+  apply:
+    name: Apply the approved plan (apply role)
+    needs: plan
+    if: needs.plan.outputs.has_changes == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    # Required reviewer approval happens here, before the apply role or the decryption key exist.
+    environment: dev-infrastructure-apply
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: terraform-state-dev-platform
+      cancel-in-progress: false
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      - name: Install age
+        uses: ./.github/actions/install-age
+      - name: Write private configuration (masked)
+        id: config
+        env:
+          TERRAFORM_CONFIG_JSON: ${{ secrets.TERRAFORM_CONFIG_JSON }}
+        run: ./scripts/ci/write-terraform-ci-config.ps1
+      - name: Assume the apply role (OIDC, after approval)
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: eu-west-2
+          role-session-name: finsight-apply-${{ github.run_id }}
+          role-duration-seconds: 3600
+          mask-aws-account-id: true
+      - name: Confirm the session is the apply role
+        run: ./scripts/ci/assert-terraform-ci-account.ps1 -Role apply
+      - name: Initialise the S3 backend
+        working-directory: ${{ env.PLATFORM_ROOT }}
+        run: terraform init -input=false -lockfile=readonly -backend-config=backend.hcl -no-color
+      # download-artifact fails on an artifact digest mismatch; the script then checks our own digests.
+      - name: Download the encrypted plan
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: terraform-plan-${{ needs.plan.outputs.run_id }}-${{ needs.plan.outputs.run_attempt }}
+          path: ${{ runner.temp }}/protected
+          digest-mismatch: error
+      - name: Verify and decrypt the approved plan
+        env:
+          PLAN_DECRYPTION_IDENTITY: ${{ secrets.PLAN_DECRYPTION_IDENTITY }}
+          EXPECTED_COMMIT: ${{ needs.plan.outputs.commit }}
+          EXPECTED_RUN_ID: ${{ needs.plan.outputs.run_id }}
+          EXPECTED_RUN_ATTEMPT: ${{ needs.plan.outputs.run_attempt }}
+          EXPECTED_STATE_KEY: ${{ needs.plan.outputs.state_key }}
+          EXPECTED_BACKEND_SHA256: ${{ needs.plan.outputs.backend_sha256 }}
+          EXPECTED_CONFIG_SHA256: ${{ needs.plan.outputs.config_sha256 }}
+          EXPECTED_LOCK_SHA256: ${{ needs.plan.outputs.lock_file_sha256 }}
+          EXPECTED_TF_VERSION: ${{ needs.plan.outputs.terraform_version }}
+          EXPECTED_PLAN_CIPHERTEXT_SHA256: ${{ needs.plan.outputs.plan_ciphertext_sha256 }}
+          EXPECTED_CI_RECIPIENT: ${{ needs.plan.outputs.ci_recipient }}
+          EXPECTED_PLAN_SHA256: ${{ needs.plan.outputs.plan_sha256 }}
+          EXPECTED_CHANGES_SHA256: ${{ needs.plan.outputs.changes_sha256 }}
+          EXPECTED_ALLOW_DESTROY: ${{ needs.plan.outputs.allow_destroy }}
+        run: ./scripts/ci/unprotect-terraform-plan.ps1 -Root "$env:PLATFORM_ROOT" -EncryptedPlan "$env:RUNNER_TEMP/protected/platform.tfplan.age" -PlanFile approved.tfplan
+      # Terraform refuses a saved plan whose state changed after planning. Apply output can contain
+      # resource IDs and output values, so only the result line reaches the public log.
+      - name: Apply exactly the approved plan
+        working-directory: ${{ env.PLATFORM_ROOT }}
+        run: |
+          terraform apply -input=false -lock-timeout=5m -no-color approved.tfplan > "$env:RUNNER_TEMP/apply.txt"
+          $code = $LASTEXITCODE
+          Select-String -LiteralPath "$env:RUNNER_TEMP/apply.txt" -Pattern '^Apply complete! Resources: .*$' | ForEach-Object { $_.Matches.Value }
+          if ($code -ne 0) { throw "terraform apply failed; see the diagnostics above. No force-unlock is attempted." }
+      - name: Explain the failure
+        if: failure()
+        run: |
+          "## Terraform apply: failed`n`nNo force-unlock was attempted. A stale saved plan, digest or identity mismatch is a deliberate refusal: start a new run and review its plan. A state-lock timeout means another Terraform run holds the lock. A failure during apply can leave some changes applied: run a new plan to see the current state. See docs/infrastructure/terraform-ci.md." | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+      - name: Remove decrypted plans, configuration and backend files
+        if: always()
+        run: |
+          Remove-Item -Force -Recurse -ErrorAction SilentlyContinue -LiteralPath "$env:RUNNER_TEMP/apply.txt", "$env:RUNNER_TEMP/protected", "$env:PLATFORM_ROOT/approved.tfplan", "infra/terraform/config/local.json"
+          Get-ChildItem -Path infra/terraform -Recurse -Filter backend.hcl | Remove-Item -Force

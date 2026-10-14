@@ -14,6 +14,7 @@ on:
       - "scripts/scan-terraform.ps1"
       - "scripts/new-terraform-backend-config.ps1"
       - "scripts/ci/**"
+      - ".github/actions/install-age/**"
       - ".github/workflows/terraform.yml"
 
 # Nothing by default; each job grants only what it needs.
@@ -60,6 +61,13 @@ jobs:
       - name: Run Terraform checks
         shell: pwsh
         run: ./scripts/validate-terraform.ps1
+      # Synthetic security regression tests for the approval-gated apply's plan protection (#11):
+      # throwaway age keys and fixtures only; no AWS, Terraform state or secrets.
+      - name: Install age
+        uses: ./.github/actions/install-age
+      - name: Run plan protection security tests
+        shell: pwsh
+        run: ./scripts/ci/tests/plan-protection.tests.ps1
 
   plan:
     name: Plan platform (plan-only role)
@@ -107,7 +115,7 @@ jobs:
           mask-aws-account-id: true
       - name: Confirm the session
         if: steps.config.outputs.plan_enabled == 'true'
-        run: ./scripts/ci/assert-terraform-ci-account.ps1
+        run: ./scripts/ci/assert-terraform-ci-account.ps1 -Role plan
       - name: Initialise the S3 backend
         if: steps.config.outputs.plan_enabled == 'true'
         working-directory: ${{ env.PLATFORM_ROOT }}
