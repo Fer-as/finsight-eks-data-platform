@@ -83,9 +83,9 @@ upgrading.
 ## Dependencies and remaining work
 
 - **AWS Load Balancer Controller role: [#34](https://github.com/Fer-as/finsight-eks-data-platform/issues/34).** Originally part of #6 and
-  moved to its own issue. It needs AWS's published controller policy, which is large (EC2 and
-  Elastic Load Balancing actions with tag conditions), pinned to the controller version and
-  reviewed separately. Until it exists, the NGINX Service cannot get its NLB.
+  moved to its own issue. Now defined in Terraform from AWS's published v3.6.0 policy, pinned
+  and scoped to this cluster, with no Route 53 permissions; see
+  [load-balancer-controller.md](load-balancer-controller.md). Not yet applied.
 - **Controllers.** Installing ExternalDNS (#22), cert-manager (#21) and NGINX (#20) through
   Argo CD is later work. The Pod Identity associations exist before the pods; the controllers
   must use exactly the namespaces and service accounts above.
