@@ -33,6 +33,11 @@ $configModule = Join-Path $infra "modules/config"
 if ($LASTEXITCODE -ne 0) { throw "Configuration test initialization failed." }
 & $TerraformPath "-chdir=$configModule" test -no-color
 if ($LASTEXITCODE -ne 0) { throw "Provider-free configuration tests failed." }
+$dnsModule = Join-Path $infra "modules/dns-policies"
+& $TerraformPath "-chdir=$dnsModule" init -backend=false -input=false
+if ($LASTEXITCODE -ne 0) { throw "DNS policy test initialization failed." }
+& $TerraformPath "-chdir=$dnsModule" test -no-color
+if ($LASTEXITCODE -ne 0) { throw "Provider-free DNS policy tests failed." }
 $networkModule = Join-Path $infra "modules/network"
 & $TerraformPath "-chdir=$networkModule" init -backend=false -input=false -lockfile=readonly
 if ($LASTEXITCODE -ne 0) { throw "Mock network test initialization failed." }

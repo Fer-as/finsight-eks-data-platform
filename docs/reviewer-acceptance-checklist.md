@@ -70,7 +70,7 @@ for the bootstrap and foundation roots on 14 October 2026 (G02.6).
 | G01 | Board / Tickets | 10 | In progress | Public board and 30 issues (14 October 2026); first linked PR open ([#33](https://github.com/Fer-as/finsight-eks-data-platform/pull/33)); screenshots pending | R11.2 |
 | G02 | Terraform for AWS Infrastructure | 15 | In progress | Modules, remote state and two of three roots applied; platform (VPC, EKS, nodes) not applied; security groups and controller IAM roles incomplete | R9.1-R9.6, R6.6 |
 | G03 | NGINX Ingress Controller | 10 | Not started | Chart choice planned; nothing installed | R6.4 |
-| G04 | CertManager and ExternalDNS | 20 | Not started | Hosted zone exists; no controllers, IAM roles or certificates | R6.3-R6.5, R4.7 |
+| G04 | CertManager and ExternalDNS | 20 | In progress | ExternalDNS and cert-manager Pod Identity roles in Terraform (not applied); no controllers or certificates | R6.3-R6.5, R4.7 |
 | G05 | Monitoring Setup | 15 | Not started | Nothing installed | R4.3, R4.4 |
 | G06 | Pipeline 1: Terraform | 10 | In progress | Local validation scripts and an applied plan-only OIDC role; no workflow, apply role or approval gate | R7.3, R7.5-R7.10, R9.2 |
 | G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | In progress | Local tests, Dockerfiles, ECR repositories and publisher role exist; no workflow; production frontend image missing | R7.1-R7.9, R4.5, R5.1-R5.7, R8.2, R10.4 |
@@ -113,7 +113,7 @@ Every category has a record table and criteria rows. Tickets are on the
 | Runtime / repository evidence | Plan and apply summaries, `aws eks describe-*`, `kubectl get nodes`, Checkov results |
 | Objective verification | Plans match expected counts; resources exist with the stated settings; teardown leaves retained resources only |
 | Reviewer IDs | R9.1-R9.6, R6.6, R12.1-R12.3 |
-| Ticket | [#5](https://github.com/Fer-as/finsight-eks-data-platform/issues/5), [#6](https://github.com/Fer-as/finsight-eks-data-platform/issues/6), [#7](https://github.com/Fer-as/finsight-eks-data-platform/issues/7), [#8](https://github.com/Fer-as/finsight-eks-data-platform/issues/8), [#9](https://github.com/Fer-as/finsight-eks-data-platform/issues/9); deployment [#30](https://github.com/Fer-as/finsight-eks-data-platform/issues/30); retrospective [#3](https://github.com/Fer-as/finsight-eks-data-platform/issues/3) |
+| Ticket | [#5](https://github.com/Fer-as/finsight-eks-data-platform/issues/5), [#6](https://github.com/Fer-as/finsight-eks-data-platform/issues/6), [#7](https://github.com/Fer-as/finsight-eks-data-platform/issues/7), [#8](https://github.com/Fer-as/finsight-eks-data-platform/issues/8), [#9](https://github.com/Fer-as/finsight-eks-data-platform/issues/9); deployment [#30](https://github.com/Fer-as/finsight-eks-data-platform/issues/30); retrospective [#3](https://github.com/Fer-as/finsight-eks-data-platform/issues/3), [#34](https://github.com/Fer-as/finsight-eks-data-platform/issues/34) |
 
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
@@ -135,7 +135,7 @@ Every category has a record table and criteria rows. Tickets are on the
 | Runtime / repository evidence | Controller pods, LoadBalancer service, Ingress objects, `curl` results |
 | Objective verification | Requests reach the correct services by host and path; wrong host or path is rejected |
 | Reviewer IDs | R6.4, R4.7 |
-| Ticket | [#20](https://github.com/Fer-as/finsight-eks-data-platform/issues/20) |
+| Ticket | [#20](https://github.com/Fer-as/finsight-eks-data-platform/issues/20), [#34](https://github.com/Fer-as/finsight-eks-data-platform/issues/34) |
 
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
@@ -150,9 +150,9 @@ Certificate issuance, renewal, DNS management and the final HTTPS result are tes
 
 | Field | Record |
 |---|---|
-| Status | Not started |
+| Status | In progress |
 | Existing implementation | Public hosted zone exists and is read by the platform root; hostname validated in config |
-| Missing | cert-manager and ExternalDNS installs, ClusterIssuers, Pod Identity role for ExternalDNS (and cert-manager if DNS-01), Ingress TLS configuration |
+| Missing | cert-manager and ExternalDNS installs, ClusterIssuers, Ingress TLS configuration, applying the DNS identity roles |
 | Runtime / repository evidence | Certificate and Order status, Route 53 record listing, renewal output, `curl -v` |
 | Objective verification | Each of G04.2-G04.6 shown independently |
 | Reviewer IDs | R6.3, R6.4, R6.5, R4.7, R3.1 |
@@ -163,7 +163,7 @@ Certificate issuance, renewal, DNS management and the final HTTPS result are tes
 | G04.1 | cert-manager installed (pinned chart, via Argo CD) with Let's Encrypt staging and production ClusterIssuers; staging tested first | Not started | Manifests; issuer status | GitOps directory | Both issuers Ready |
 | G04.2 | Certificate for the hostname issued automatically from the Ingress or Certificate resource by the production issuer | Not started | `kubectl get certificate`; certificate details | `docs/evidence/` | Ready=True; issuer is Let's Encrypt; SAN equals the hostname |
 | G04.3 | Automatic renewal configured and demonstrated | Not started | `renewBefore` setting; forced renewal output showing a new serial | GitOps directory, `docs/evidence/` | Serial before and after differ; the secret updated without manual edits |
-| G04.4 | ExternalDNS installed with a Pod Identity role allowed to change only the one hosted zone, using a TXT ownership registry | Not started | Helm values; Terraform role; IAM policy | GitOps directory, `infra/terraform/` | Policy names the single zone; controller logs show the zone filter |
+| G04.4 | ExternalDNS installed with a Pod Identity role allowed to change only the one hosted zone, using a TXT ownership registry | In progress (role, zone- and name-scoped policy and association in Terraform with unit tests, [#6](https://github.com/Fer-as/finsight-eks-data-platform/issues/6); not applied; controller not installed) | Helm values; Terraform role; IAM policy | GitOps directory, `infra/terraform/` | Policy names the single zone; controller logs show the zone filter |
 | G04.5 | DNS records managed dynamically: creating the Ingress creates the A/alias record; changing or removing it updates or removes the record | Not started | Route 53 listings before and after | `docs/evidence/` | Records follow the Ingress; ownership TXT present |
 | G04.6 | Working HTTPS at `https://eks.<domain>` or `https://eks.labs.<domain>` | Not started | `curl -v` output and browser screenshot | `docs/evidence/`, `docs/screenshots/app/` | Valid chain, no warnings, app loads |
 
@@ -489,7 +489,7 @@ everything that can be built and tested without the platform comes first.
 | Priority | Gap | Categories | Needs AWS spend? |
 |---:|---|---|---|
 | 1 | Board and issues created 14 October 2026 ([#4](https://github.com/Fer-as/finsight-eks-data-platform/issues/4)). Board made public 14 October 2026. Remaining: link every PR, capture dated screenshots | G01 (10) | No |
-| 2 | Terraform gaps before the first platform plan: Pod Identity role for ExternalDNS (and cert-manager DNS-01 and the load balancer controller if chosen); explicit or documented security groups; a CI apply role behind a protected environment | G02, G04, G06 | No (plan only) |
+| 2 | Terraform gaps before the first platform plan: ExternalDNS and cert-manager DNS-01 roles done locally ([#6](https://github.com/Fer-as/finsight-eks-data-platform/issues/6)); AWS Load Balancer Controller role ([#34](https://github.com/Fer-as/finsight-eks-data-platform/issues/34)); explicit or documented security groups; a CI apply role behind a protected environment | G02, G04, G06 | No (plan only) |
 | 3 | Pipelines: Terraform workflow (checks, plan, gated apply); application workflow (tests, Checkov, matrix builds, Trivy, ECR push, GitOps image update); production frontend and ETL images | G06 (10), G07 (30), R5.7 | ECR storage only |
 | 4 | GitOps repository layout and Argo CD applications for FinSight, NGINX, cert-manager, ExternalDNS and monitoring, with hardened manifests (R5), tested on a local cluster first | G03, G04, G05, G08, R5 | No |
 | 5 | Original draw.io architecture diagram and README rewrite | G09 (10), R1, R2 | No |

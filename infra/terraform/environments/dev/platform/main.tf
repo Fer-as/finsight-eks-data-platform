@@ -59,6 +59,41 @@ resource "aws_eks_pod_identity_association" "etl" {
   service_account = "finsight-etl"
   role_arn        = module.etl_role.arn
 }
+# Separate DNS identities: ExternalDNS owns the application records, cert-manager only the
+# DNS-01 challenge record. See docs/infrastructure/dns-and-certificates.md.
+module "dns_policies" {
+  source   = "../../../modules/dns-policies"
+  zone_id  = data.aws_route53_zone.existing.zone_id
+  hostname = local.config.dns.application_hostname
+}
+module "external_dns_role" {
+  source          = "../../../modules/pod-role"
+  name            = "${module.config.name}-external-dns"
+  cluster_arn     = module.eks.arn
+  namespace       = "external-dns"
+  service_account = "external-dns"
+  inline_policy   = module.dns_policies.external_dns
+}
+resource "aws_eks_pod_identity_association" "external_dns" {
+  cluster_name    = module.eks.name
+  namespace       = "external-dns"
+  service_account = "external-dns"
+  role_arn        = module.external_dns_role.arn
+}
+module "cert_manager_role" {
+  source          = "../../../modules/pod-role"
+  name            = "${module.config.name}-cert-manager"
+  cluster_arn     = module.eks.arn
+  namespace       = "cert-manager"
+  service_account = "cert-manager"
+  inline_policy   = module.dns_policies.cert_manager
+}
+resource "aws_eks_pod_identity_association" "cert_manager" {
+  cluster_name    = module.eks.name
+  namespace       = "cert-manager"
+  service_account = "cert-manager"
+  role_arn        = module.cert_manager_role.arn
+}
 output "cluster_name" {
   description = "Cluster name for later kubeconfig setup."
   value       = module.eks.name
@@ -85,4 +120,13 @@ output "application_hostname" {
 output "etl_role_arn" {
   description = "Reserved for the later finsight/finsight-etl service account; no Kubernetes object is created."
   value       = module.etl_role.arn
+}
+output "dns_identity" {
+  description = "Pod Identity roles and record scope for the later ExternalDNS and cert-manager installs."
+  value = {
+    external_dns_role_arn     = module.external_dns_role.arn
+    external_dns_record_names = module.dns_policies.external_dns_record_names
+    cert_manager_role_arn     = module.cert_manager_role.arn
+    acme_challenge_record     = module.dns_policies.acme_challenge_record
+  }
 }
