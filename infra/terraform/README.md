@@ -105,7 +105,9 @@ check exclusions or soft-fail options are configured.
 - All five control-plane log types and VPC flow logs are enabled with seven-day retention.
   CloudWatch service encryption and EKS default AWS-owned-key encryption are used; no extra
   customer-managed KMS key/cost is introduced.
-- AWS-managed EKS security groups permit node-to-node communication and outbound access.
+- The EKS-managed cluster security group carries control-plane, node and pod traffic; the only
+  outside access is the public NLB's Terraform-owned group reaching the ingress pod ports. See
+  [network-security.md](../../docs/infrastructure/network-security.md).
   NAT permits outbound AWS/HTTPS access, including EKS Auth for Pod Identity. Workload
   NetworkPolicies and ingress-specific hardening belong to the later Kubernetes phase.
 - Pod Identity binds CNI, EBS CSI, the future ETL, ExternalDNS and cert-manager to specific

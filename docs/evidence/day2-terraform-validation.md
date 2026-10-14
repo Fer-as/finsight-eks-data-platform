@@ -186,6 +186,14 @@ forensic record. No automated reviewer or alarm is deployed. Current and noncurr
 each expire at 90 days by default, so logs can persist approximately 180 days plus processing
 delay. Source state/data retention is unchanged. No Object Lock is enabled on this destination.
 
+### Later exception: PUBLIC-INGRESS-SG (issue #7, 14 October 2026)
+
+| # | Policy ID | Exact Checkov resource address | Category / disposition | Controls and residual risk |
+|---|---|---|---|---|
+| 16 | CKV2_AWS_5 | module.network.aws_security_group.public_ingress | Static policy cannot see the attachment | The AWS Load Balancer Controller attaches the group to the NLB from a Service annotation, outside Terraform. Its rules are tested offline; until the NLB exists the group is unused. Confirmed as the only finding when the skip was removed. See [network-security.md](../infrastructure/network-security.md). |
+
+Scan with this change: 164 passed, 0 failed, 16 skipped, 0 parsing errors.
+
 ### Cost, validation and review conditions
 
 No KMS keys, replication or event-processing services were added. A dedicated S3 log bucket
