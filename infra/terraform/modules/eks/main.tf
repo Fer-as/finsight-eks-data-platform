@@ -6,6 +6,14 @@ variable "subnet_ids" {
   description = "Two private worker/control-plane subnet IDs."
   type        = list(string)
 }
+variable "permissions_boundary" {
+  description = "Required FinSight workload permissions boundary ARN, set on every role this module creates."
+  type        = string
+  validation {
+    condition     = can(regex("^arn:aws:iam::[0-9]{12}:policy/.+-workload-boundary$", var.permissions_boundary))
+    error_message = "Every FinSight platform role must carry the FinSight workload permissions boundary."
+  }
+}
 variable "tags" {
   description = "Common tags propagated to EC2 instances and root EBS volumes."
   type        = map(string)
@@ -56,7 +64,8 @@ locals {
   bootstrap_addons = toset(["vpc-cni", "kube-proxy"])
 }
 resource "aws_iam_role" "cluster" {
-  name = "${var.name}-cluster"
+  name                 = "${var.name}-cluster"
+  permissions_boundary = var.permissions_boundary
   assume_role_policy = jsonencode({
     Version = "2012-10-17", Statement = [{
       Effect = "Allow", Principal = { Service = "eks.amazonaws.com" }, Action = "sts:AssumeRole"
@@ -108,20 +117,22 @@ resource "aws_eks_access_policy_association" "admin" {
   access_scope { type = "cluster" }
 }
 module "cni_role" {
-  source          = "../pod-role"
-  name            = "${var.name}-vpc-cni"
-  cluster_arn     = aws_eks_cluster.this.arn
-  namespace       = "kube-system"
-  service_account = "aws-node"
-  policy_arns     = ["arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"]
+  source               = "../pod-role"
+  name                 = "${var.name}-vpc-cni"
+  cluster_arn          = aws_eks_cluster.this.arn
+  namespace            = "kube-system"
+  service_account      = "aws-node"
+  policy_arns          = ["arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"]
+  permissions_boundary = var.permissions_boundary
 }
 module "ebs_role" {
-  source          = "../pod-role"
-  name            = "${var.name}-ebs-csi"
-  cluster_arn     = aws_eks_cluster.this.arn
-  namespace       = "kube-system"
-  service_account = "ebs-csi-controller-sa"
-  policy_arns     = ["arn:aws:iam::aws:policy/AmazonEBSCSIDriverPolicyV2"]
+  source               = "../pod-role"
+  name                 = "${var.name}-ebs-csi"
+  cluster_arn          = aws_eks_cluster.this.arn
+  namespace            = "kube-system"
+  service_account      = "ebs-csi-controller-sa"
+  policy_arns          = ["arn:aws:iam::aws:policy/AmazonEBSCSIDriverPolicyV2"]
+  permissions_boundary = var.permissions_boundary
 }
 resource "aws_eks_addon" "identity_agent" {
   cluster_name                = aws_eks_cluster.this.name
@@ -147,7 +158,8 @@ resource "aws_eks_addon" "bootstrap" {
   }
 }
 resource "aws_iam_role" "node" {
-  name = "${var.name}-node"
+  name                 = "${var.name}-node"
+  permissions_boundary = var.permissions_boundary
   assume_role_policy = jsonencode({
     Version = "2012-10-17", Statement = [{
       Effect = "Allow", Principal = { Service = "ec2.amazonaws.com" }, Action = "sts:AssumeRole"

@@ -19,13 +19,22 @@ variable "policy_arns" {
   type        = set(string)
   default     = []
 }
+variable "permissions_boundary" {
+  description = "Required FinSight workload permissions boundary ARN, set on every role this module creates."
+  type        = string
+  validation {
+    condition     = can(regex("^arn:aws:iam::[0-9]{12}:policy/.+-workload-boundary$", var.permissions_boundary))
+    error_message = "Every FinSight platform role must carry the FinSight workload permissions boundary."
+  }
+}
 variable "inline_policy" {
   description = "Optional JSON identity policy."
   type        = string
   default     = null
 }
 resource "aws_iam_role" "this" {
-  name = var.name
+  name                 = var.name
+  permissions_boundary = var.permissions_boundary
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{

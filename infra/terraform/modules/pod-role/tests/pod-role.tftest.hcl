@@ -1,11 +1,12 @@
 # Offline unit tests with a mocked AWS provider. All run blocks use plan and create no resources.
 mock_provider "aws" {}
 variables {
-  name            = "finsight-test-aws-load-balancer-controller"
-  cluster_arn     = "arn:aws:eks:eu-west-2:111111111111:cluster/finsight-test"
-  namespace       = "kube-system"
-  service_account = "aws-load-balancer-controller"
-  inline_policy   = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"elasticloadbalancing:DescribeLoadBalancers\",\"Resource\":\"*\"}]}"
+  name                 = "finsight-test-aws-load-balancer-controller"
+  cluster_arn          = "arn:aws:eks:eu-west-2:111111111111:cluster/finsight-test"
+  namespace            = "kube-system"
+  service_account      = "aws-load-balancer-controller"
+  permissions_boundary = "arn:aws:iam::111111111111:policy/finsight-test-workload-boundary"
+  inline_policy        = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"elasticloadbalancing:DescribeLoadBalancers\",\"Resource\":\"*\"}]}"
 }
 run "trust_limited_to_pod_identity_for_one_service_account" {
   command = plan
@@ -47,4 +48,16 @@ run "no_policies_when_none_given" {
     condition     = length(aws_iam_role_policy.this) == 0 && length(aws_iam_role_policy_attachment.this) == 0
     error_message = "No permissions may be granted unless supplied."
   }
+}
+run "role_carries_workload_boundary" {
+  command = plan
+  assert {
+    condition     = aws_iam_role.this.permissions_boundary == "arn:aws:iam::111111111111:policy/finsight-test-workload-boundary"
+    error_message = "Every Pod Identity role must carry the FinSight workload boundary."
+  }
+}
+run "reject_role_without_workload_boundary" {
+  command = plan
+  variables { permissions_boundary = "arn:aws:iam::aws:policy/AdministratorAccess" }
+  expect_failures = [var.permissions_boundary]
 }

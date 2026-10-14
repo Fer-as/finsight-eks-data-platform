@@ -17,6 +17,7 @@ AWS provider default_tags; EC2/EBS tag specifications are passed explicitly to e
 | `service_account` | `string` | Exact Kubernetes service account. |
 | `policy_arns` | `set(string)` | Managed policy ARNs; default empty. |
 | `inline_policy` | `string / null` | Optional JSON policy; default null. |
+| `permissions_boundary` | `string` | Required `*-workload-boundary` policy ARN; the CI apply role can only create roles that carry it. |
 
 ## Outputs
 

@@ -59,7 +59,8 @@
     "existing_provider_arn": "",
     "subject_prefix": "",
     "infra_environment": "dev-infrastructure",
-    "images_environment": "dev-images"
+    "images_environment": "dev-images",
+    "apply_environment": "dev-infrastructure-apply"
   },
   "storage": {
     "repositories": [

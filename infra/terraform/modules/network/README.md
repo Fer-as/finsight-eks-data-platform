@@ -14,6 +14,7 @@ AWS provider default_tags; EC2/EBS tag specifications are passed explicitly to e
 |---|---|---|
 | `name` | `string` | Resource prefix. |
 | `region` | `string` | AWS Region. |
+| `permissions_boundary` | `string` | Required `*-workload-boundary` policy ARN set on the flow-log role. |
 | `config` | `object` | vpc_cidr, two availability_zones, two public_cidrs, two private_cidrs, log_retention_days. See central defaults. |
 | `public_listener_ports` | `set(number)` | Internet-facing NLB ports; default 80 and 443, and only those are accepted. |
 | `ingress_target_ports` | `set(number)` | Ingress pod ports the NLB may reach; default 80, 443, 8081; 22 and 3389 rejected. |

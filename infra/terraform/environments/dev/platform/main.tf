@@ -1,5 +1,9 @@
 module "config" { source = "../../../modules/config" }
-locals { config = module.config.value }
+locals {
+  config = module.config.value
+  # Created by the foundation root (issue #8); every platform role must carry it.
+  permissions_boundary = "arn:aws:iam::${local.config.account_id}:policy/${module.config.name}-workload-boundary"
+}
 provider "aws" {
   region              = local.config.region
   allowed_account_ids = [local.config.account_id]
@@ -19,17 +23,19 @@ data "aws_route53_zone" "existing" {
   }
 }
 module "network" {
-  source = "../../../modules/network"
-  name   = module.config.name
-  region = local.config.region
-  config = local.config.network
+  source               = "../../../modules/network"
+  name                 = module.config.name
+  region               = local.config.region
+  config               = local.config.network
+  permissions_boundary = local.permissions_boundary
 }
 module "eks" {
-  source     = "../../../modules/eks"
-  name       = module.config.name
-  subnet_ids = module.network.private_subnet_ids
-  config     = local.config.eks
-  tags       = module.config.tags
+  source               = "../../../modules/eks"
+  name                 = module.config.name
+  subnet_ids           = module.network.private_subnet_ids
+  config               = local.config.eks
+  permissions_boundary = local.permissions_boundary
+  tags                 = module.config.tags
   # Ensure private NAT/S3 routes and flow logging exist before workers bootstrap.
   depends_on = [module.network]
 }
@@ -55,12 +61,13 @@ module "load_balancer_controller_policy" {
   cluster_name = module.config.name # the EKS cluster name; the Helm clusterName must match
 }
 module "load_balancer_controller_role" {
-  source          = "../../../modules/pod-role"
-  name            = "${module.config.name}-aws-load-balancer-controller"
-  cluster_arn     = module.eks.arn
-  namespace       = "kube-system"
-  service_account = "aws-load-balancer-controller"
-  inline_policy   = module.load_balancer_controller_policy.policy
+  source               = "../../../modules/pod-role"
+  permissions_boundary = local.permissions_boundary
+  name                 = "${module.config.name}-aws-load-balancer-controller"
+  cluster_arn          = module.eks.arn
+  namespace            = "kube-system"
+  service_account      = "aws-load-balancer-controller"
+  inline_policy        = module.load_balancer_controller_policy.policy
 }
 resource "aws_eks_pod_identity_association" "load_balancer_controller" {
   cluster_name    = module.eks.name
@@ -69,11 +76,12 @@ resource "aws_eks_pod_identity_association" "load_balancer_controller" {
   role_arn        = module.load_balancer_controller_role.arn
 }
 module "etl_role" {
-  source          = "../../../modules/pod-role"
-  name            = "${module.config.name}-etl"
-  cluster_arn     = module.eks.arn
-  namespace       = "finsight"
-  service_account = "finsight-etl"
+  source               = "../../../modules/pod-role"
+  permissions_boundary = local.permissions_boundary
+  name                 = "${module.config.name}-etl"
+  cluster_arn          = module.eks.arn
+  namespace            = "finsight"
+  service_account      = "finsight-etl"
   inline_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
@@ -102,12 +110,13 @@ module "dns_policies" {
   hostname = local.config.dns.application_hostname
 }
 module "external_dns_role" {
-  source          = "../../../modules/pod-role"
-  name            = "${module.config.name}-external-dns"
-  cluster_arn     = module.eks.arn
-  namespace       = "external-dns"
-  service_account = "external-dns"
-  inline_policy   = module.dns_policies.external_dns
+  source               = "../../../modules/pod-role"
+  permissions_boundary = local.permissions_boundary
+  name                 = "${module.config.name}-external-dns"
+  cluster_arn          = module.eks.arn
+  namespace            = "external-dns"
+  service_account      = "external-dns"
+  inline_policy        = module.dns_policies.external_dns
 }
 resource "aws_eks_pod_identity_association" "external_dns" {
   cluster_name    = module.eks.name
@@ -116,12 +125,13 @@ resource "aws_eks_pod_identity_association" "external_dns" {
   role_arn        = module.external_dns_role.arn
 }
 module "cert_manager_role" {
-  source          = "../../../modules/pod-role"
-  name            = "${module.config.name}-cert-manager"
-  cluster_arn     = module.eks.arn
-  namespace       = "cert-manager"
-  service_account = "cert-manager"
-  inline_policy   = module.dns_policies.cert_manager
+  source               = "../../../modules/pod-role"
+  permissions_boundary = local.permissions_boundary
+  name                 = "${module.config.name}-cert-manager"
+  cluster_arn          = module.eks.arn
+  namespace            = "cert-manager"
+  service_account      = "cert-manager"
+  inline_policy        = module.dns_policies.cert_manager
 }
 resource "aws_eks_pod_identity_association" "cert_manager" {
   cluster_name    = module.eks.name
