@@ -45,6 +45,29 @@ resource "aws_vpc_security_group_ingress_rule" "nlb_to_ingress_pods" {
   from_port                    = each.value
   to_port                      = each.value
 }
+# AWS Load Balancer Controller: provisions the public NLB for F5 NGINX. Upstream v3.6.0 policy,
+# narrowed to this account, Region, VPC and k8s-* NLBs. See docs/infrastructure/load-balancer-controller.md.
+module "load_balancer_controller_policy" {
+  source       = "../../../modules/load-balancer-controller-policy"
+  region       = local.config.region
+  account_id   = local.config.account_id
+  vpc_id       = module.network.vpc_id
+  cluster_name = module.config.name # the EKS cluster name; the Helm clusterName must match
+}
+module "load_balancer_controller_role" {
+  source          = "../../../modules/pod-role"
+  name            = "${module.config.name}-aws-load-balancer-controller"
+  cluster_arn     = module.eks.arn
+  namespace       = "kube-system"
+  service_account = "aws-load-balancer-controller"
+  inline_policy   = module.load_balancer_controller_policy.policy
+}
+resource "aws_eks_pod_identity_association" "load_balancer_controller" {
+  cluster_name    = module.eks.name
+  namespace       = "kube-system"
+  service_account = "aws-load-balancer-controller"
+  role_arn        = module.load_balancer_controller_role.arn
+}
 module "etl_role" {
   source          = "../../../modules/pod-role"
   name            = "${module.config.name}-etl"
@@ -134,6 +157,18 @@ output "application_hostname" {
 output "etl_role_arn" {
   description = "Reserved for the later finsight/finsight-etl service account; no Kubernetes object is created."
   value       = module.etl_role.arn
+}
+output "load_balancer_controller" {
+  description = "Values for the later AWS Load Balancer Controller Helm install (pods cannot read instance metadata)."
+  value = {
+    role_arn        = module.load_balancer_controller_role.arn
+    namespace       = "kube-system"
+    service_account = "aws-load-balancer-controller"
+    cluster_name    = module.eks.name
+    region          = local.config.region
+    vpc_id          = module.network.vpc_id
+    policy_source   = module.load_balancer_controller_policy.source
+  }
 }
 output "dns_identity" {
   description = "Pod Identity roles and record scope for the later ExternalDNS and cert-manager installs."
