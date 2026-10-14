@@ -10,9 +10,9 @@ Current status, 14 October 2026. Task board (public): https://github.com/users/F
 | ID | Official category | Points | Status | Evidence so far | Main gaps |
 |---|---|---:|---|---|---|
 | G01 | Board / Tickets | 10 | In progress | [Board](https://github.com/users/Fer-as/projects/2) and 30 issues (#3-#32) created 14 October 2026 and public (verified anonymously); retrospective #3 closed after verification | Remaining PRs to link (first: [#33](https://github.com/Fer-as/finsight-eks-data-platform/pull/33) closes #5); dated screenshots |
-| G02 | Terraform for AWS Infrastructure | 15 | In progress | Modules validated (3/3 roots, 9/9 tests); bootstrap and foundation applied with S3 state and native locking; Checkov 130 passed / 0 failed / 15 documented exceptions | Platform (VPC, EKS, nodes) not applied; security groups; ExternalDNS IAM role |
+| G02 | Terraform for AWS Infrastructure | 15 | In progress | Modules validated (3/3 roots, 15/15 tests); bootstrap and foundation applied with S3 state and native locking; Checkov 146 passed / 0 failed / 15 documented exceptions (with the #6 DNS roles, local) | Platform (VPC, EKS, nodes) not applied; security groups; AWS Load Balancer Controller role (#34); CI apply role |
 | G03 | NGINX Ingress Controller | 10 | Not started | F5 NGINX chosen (assessor acceptance pending); retired community ingress-nginx and Traefik not used | Install, Ingress routing, tests |
-| G04 | CertManager and ExternalDNS | 20 | Not started | Public hosted zone exists; hostname validated | Controllers, issuers, IAM, HTTPS, renewal and DNS lifecycle tests |
+| G04 | CertManager and ExternalDNS | 20 | In progress | Public hosted zone exists; ExternalDNS and cert-manager Pod Identity roles in Terraform (not applied, #6) | Controllers, issuers, IAM, HTTPS, renewal and DNS lifecycle tests |
 | G05 | Monitoring Setup | 15 | Not started | None | Prometheus, Grafana, ingress and application metrics |
 | G06 | Pipeline 1: Terraform | 10 | In progress | Local validation/scan scripts; plan-only OIDC role applied and verified | Workflow, gated apply role, failure handling, run evidence |
 | G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | In progress | Local tests (37 Python, 6 frontend); ECR repositories and image role applied | Workflow, production frontend and ETL images, Trivy, ECR push, GitOps deploy, failing-run evidence |
