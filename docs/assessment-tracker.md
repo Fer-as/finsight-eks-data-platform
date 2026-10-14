@@ -9,7 +9,7 @@ Current status, 14 October 2026. Task board (public): https://github.com/users/F
 
 | ID | Official category | Points | Status | Evidence so far | Main gaps |
 |---|---|---:|---|---|---|
-| G01 | Board / Tickets | 10 | In progress | [Board](https://github.com/users/Fer-as/projects/2) and 30 issues (#3-#32) created 14 October 2026 and public (verified anonymously); retrospective #3 closed after verification | PRs not yet linked; dated screenshots |
+| G01 | Board / Tickets | 10 | In progress | [Board](https://github.com/users/Fer-as/projects/2) and 30 issues (#3-#32) created 14 October 2026 and public (verified anonymously); retrospective #3 closed after verification | Remaining PRs to link (first: [#33](https://github.com/Fer-as/finsight-eks-data-platform/pull/33) closes #5); dated screenshots |
 | G02 | Terraform for AWS Infrastructure | 15 | In progress | Modules validated (3/3 roots, 9/9 tests); bootstrap and foundation applied with S3 state and native locking; Checkov 130 passed / 0 failed / 15 documented exceptions | Platform (VPC, EKS, nodes) not applied; security groups; ExternalDNS IAM role |
 | G03 | NGINX Ingress Controller | 10 | Not started | F5 NGINX chosen (assessor acceptance pending); retired community ingress-nginx and Traefik not used | Install, Ingress routing, tests |
 | G04 | CertManager and ExternalDNS | 20 | Not started | Public hosted zone exists; hostname validated | Controllers, issuers, IAM, HTTPS, renewal and DNS lifecycle tests |

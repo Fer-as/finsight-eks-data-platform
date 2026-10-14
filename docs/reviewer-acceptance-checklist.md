@@ -67,7 +67,7 @@ for the bootstrap and foundation roots on 14 October 2026 (G02.6).
 
 | ID | Category | Points | Status | Readiness summary (not a grade) | Reviewer IDs |
 |---|---|---:|---|---|---|
-| G01 | Board / Tickets | 10 | In progress | Public board and 30 issues (14 October 2026); no PRs linked yet; screenshots pending | R11.2 |
+| G01 | Board / Tickets | 10 | In progress | Public board and 30 issues (14 October 2026); first linked PR open ([#33](https://github.com/Fer-as/finsight-eks-data-platform/pull/33)); screenshots pending | R11.2 |
 | G02 | Terraform for AWS Infrastructure | 15 | In progress | Modules, remote state and two of three roots applied; platform (VPC, EKS, nodes) not applied; security groups and controller IAM roles incomplete | R9.1-R9.6, R6.6 |
 | G03 | NGINX Ingress Controller | 10 | Not started | Chart choice planned; nothing installed | R6.4 |
 | G04 | CertManager and ExternalDNS | 20 | Not started | Hosted zone exists; no controllers, IAM roles or certificates | R6.3-R6.5, R4.7 |
@@ -89,7 +89,7 @@ Every category has a record table and criteria rows. Tickets are on the
 |---|---|
 | Status | In progress |
 | Existing implementation | [Board](https://github.com/users/Fer-as/projects/2) with Backlog, Todo, In Progress, Review, Done and a Priority field; Board and Table views; 30 issues ([#3](https://github.com/Fer-as/finsight-eks-data-platform/issues/3)-[#32](https://github.com/Fer-as/finsight-eks-data-platform/issues/32)) labelled by category and priority; linked to this repository |
-| Missing | Pull requests linked to issues; dated board screenshots; continued use as work progresses |
+| Missing | Remaining pull requests linked to issues; dated board screenshots; continued use as work progresses |
 | Runtime / repository evidence | Board screenshot over time; issues and PRs on GitHub |
 | Objective verification | Open the board: every remaining graded criterion maps to an issue; merged PRs close issues |
 | Reviewer IDs | R11.2 |
@@ -99,7 +99,7 @@ Every category has a record table and criteria rows. Tickets are on the
 |---|---|---|---|---|---|
 | G01.1 | A GitHub Projects board with columns Backlog, Todo, In Progress, Review and Done | In progress (board and statuses exist and the board is public, verified 14 October 2026 by anonymous HTTP 200; still to be shown in active use) | Board | GitHub Projects; `docs/screenshots/board/` | Columns exist and are used |
 | G01.2 | One issue per remaining deliverable, each with acceptance criteria that cite this checklist's IDs | Verified (14 October 2026: script check found every non-Verified G, R and F criterion cited by an open issue) | Issues | GitHub issues | Every G criterion not yet Verified is covered by an open issue |
-| G01.3 | Pull requests link their issues (`Closes #n`) and move cards to Done on merge | Not started | PRs | GitHub | Merged PRs show linked, closed issues |
+| G01.3 | Pull requests link their issues (`Closes #n`) and move cards to Done on merge | In progress ([#33](https://github.com/Fer-as/finsight-eks-data-platform/pull/33) opened 14 October 2026 with `Closes #5`; verified when merges close their issues) | PRs | GitHub | Merged PRs show linked, closed issues |
 | G01.4 | Honest history: work done before the board existed is recorded in one issue labelled `retrospective`, not backdated tickets | Verified (14 October 2026: [#3](https://github.com/Fer-as/finsight-eks-data-platform/issues/3), created and closed after verifying #1, #2 and the S3 state objects) | Retrospective issue | GitHub issues | Issue creation dates are after 14 October 2026 and say so |
 | G01.5 | Dated board screenshots at the start, middle and end of the remaining work | Not started | Screenshots | `docs/screenshots/board/` | Cards visibly progress between screenshots |
 
