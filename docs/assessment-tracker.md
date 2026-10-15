@@ -17,7 +17,7 @@ Current status, 14 October 2026. Task board (public): https://github.com/users/F
 | G06 | Pipeline 1: Terraform | 10 | In progress | Plan-only and apply OIDC roles, scoped apply policies and workload boundary applied (#8); both environments protected; `main` ruleset; PR checks + OIDC plan workflow merged with a passing first run (#10, plan skipped by the compatibility gate); approval-gated encrypted-plan apply workflow written and synthetically tested (#11, not run) | Real OIDC plan (compatibility gate), age keys and environment additions, first apply runs, passing/failing run evidence |
 | G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | In progress | Production images and app.yml pipeline implemented (tests with PostgreSQL, Checkov TF/Docker/K8s, matrix build, Trivy gate, OIDC ECR publish, GitOps PR); all jobs reproduced locally on Linux; not yet run on GitHub | dev-images env + IMAGE_PUBLISHING_ENABLED + Actions PR permission (owner), first GitHub runs (green and failing), ECR digests, Argo CD rollout |
 | G08 | ArgoCD GitOps | 15 | In progress | Argo CD 3.5.4 (chart 10.9.7) values, app-of-apps root with sync waves and in-cluster value injection, Applications for load balancer controller, cert-manager, ClusterIssuers, NGINX, ExternalDNS and FinSight (consumes image-tags.yaml); runbook; 27 offline tests pass; not installed | Live install, admin secret rotation, Synced/Healthy, Git-triggered sync, drift and rollback evidence |
-| G09 | Architecture Design | 10 | Not started | Mermaid diagrams only | Original draw.io diagram and export |
+| G09 | Architecture Design | 10 | In progress | Editable draw.io source (3 pages, AWS/Kubernetes shapes, 7 flows on layers, legend, trust boundaries) and PNGs exported from it; README embeds the overview | Owner and assessor review; commit/PR |
 | | **Total** | **135** | | | |
 
 Additional project requirements:
@@ -58,7 +58,7 @@ official rubric, and the add-on row is out of date.
 | Terraform CI/CD pipeline | 10 | Concise workflow, formatting/validation/security scans, protected OIDC plan and reviewed deployment process | Plan-only OIDC role implemented locally; workflow and apply-role design deferred |
 | Application, security and Docker CI/CD pipeline | 30 | Tests, Checkov/Trivy results, image builds/digests, ECR publication and deployment evidence | Day 1 local application/tests exist; retained ECR and publisher role implemented locally; pipeline deferred |
 | ArgoCD GitOps | 15 | Application/repository configuration, Synced/Healthy state, reconciliation evidence | Configuration implemented and validated locally; live evidence pending |
-| Architecture documentation | 10 | Original draw.io source with official AWS icons/boundaries; architecture, costs and teardown docs | Day 1/2 Markdown/Mermaid docs exist; original draw.io and deployed evidence pending |
+| Architecture documentation | 10 | Original draw.io source with official AWS icons/boundaries; architecture, costs and teardown docs | Original draw.io source and exported PNGs created; review pending |
 | **Total available** | **135** | | **No scoring claim** |
 
 Additional project requirements:

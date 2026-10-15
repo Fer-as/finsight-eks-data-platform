@@ -5,8 +5,28 @@ PostgreSQL and a real Pandas → Parquet → PostgreSQL ETL pipeline. **Syntheti
 
 Day 1 includes revenue/expense/profit reporting, departmental expense budgets, monthly
 trends and transparent transaction risk indicators. ELT/dbt is reserved for Day 5.
-The [Day 2 Terraform foundation](infra/terraform/README.md) is implemented for local review.
-No AWS resources have been provisioned or cloud deployments performed.
+The AWS infrastructure is defined in [infra/terraform](infra/terraform/README.md). The EKS cluster,
+managed node group and EKS add-ons were previously deployed in eu-west-2 and reached ACTIVE, then destroyed
+for cost control; node Ready status was not demonstrated with kubectl. The Kubernetes add-ons (NGINX,
+cert-manager, ExternalDNS, Argo CD, monitoring) and the FinSight workloads are implemented in [gitops](gitops/)
+but not yet deployed to a live cluster.
+
+## Architecture
+
+![FinSight architecture overview: AWS network, EKS, ingress, DNS/TLS, CI/CD, GitOps and monitoring flows](docs/architecture/finsight-architecture.png)
+
+The editable diagrams.net source is [docs/architecture/finsight-architecture.drawio](docs/architecture/finsight-architecture.drawio),
+a native draw.io diagram originally constructed programmatically from the Terraform and GitOps definitions.
+It has three pages; each numbered flow is on its own layer:
+
+1. **Overview**: Region, VPC, both AZs and subnets, NAT, NLB, EKS, regional services and all seven flows (above).
+2. **Kubernetes platform**: namespaces, workloads, Services, sync waves and in-cluster flows ([PNG](docs/architecture/finsight-architecture-kubernetes.png)).
+3. **CI/CD, IAM and data**: pipelines, GitHub OIDC roles, ECR, Terraform state and the planned ETL path ([PNG](docs/architecture/finsight-architecture-cicd.png)).
+
+PostgreSQL in EKS, the ETL job and the dev-images publishing path are marked *planned*. Details:
+[ingress](docs/infrastructure/ingress.md), [DNS and certificates](docs/infrastructure/dns-and-certificates.md),
+[Argo CD](docs/infrastructure/argocd.md), [monitoring](docs/infrastructure/monitoring.md),
+[application pipeline](docs/infrastructure/app-pipeline.md), [Terraform CI](docs/infrastructure/terraform-ci.md).
 
 ## Start locally from PowerShell
 
