@@ -1,0 +1,74 @@
+# F5 NGINX Ingress Controller (NGINX Open Source), chart nginx-ingress 2.7.3 = controller 5.6.3
+# (oci://ghcr.io/nginx/charts/nginx-ingress; chart kubeVersion ">= 1.25.0-0", so 1.36 is in range).
+# Not the retired community ingress-nginx. See docs/infrastructure/ingress.md (issue #20, G03).
+#
+# The NLB's security group ID is environment-specific (a Terraform output) and must be supplied
+# at install time, before the Service is first created; see the Argo CD Application or the
+# documented helm command. AWS can only attach security groups to an NLB when it is created.
+controller:
+  kind: deployment
+  # One controller per worker (two m7i-flex.large nodes); a disruption budget keeps one serving.
+  replicaCount: 2
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: nginx-ingress
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+  # Standard Kubernetes Ingress only: no VirtualServer CRDs, no snippets.
+  ingressClass:
+    name: nginx
+    create: true
+    setAsDefaultIngress: false
+  enableCustomResources: false
+  enableSnippets: false
+
+  config:
+    entries:
+      server-tokens: "false"
+
+  # The NLB health-checks this endpoint on the pods (Terraform allows 80, 443 and 8081 from the
+  # NLB security group only; modules/network ingress_target_ports).
+  readyStatus:
+    enable: true
+    port: 8081
+
+  service:
+    type: LoadBalancer
+    # Handled by the AWS Load Balancer Controller (v3.6.0), not the legacy cloud provider.
+    loadBalancerClass: service.k8s.aws/nlb
+    # IP targets: no NodePorts at all, and no node-level traffic policy to manage.
+    allocateLoadBalancerNodePorts: false
+    externalTrafficPolicy: Cluster
+    httpPort:
+      enable: true
+      port: 80
+      targetPort: 80
+    httpsPort:
+      enable: true
+      port: 443
+      targetPort: 443
+    # From docs/infrastructure/network-security.md ("Settings the later installs must use").
+    # aws-load-balancer-security-groups is added at install time (Terraform output
+    # network.public_ingress_security_group_id).
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: external
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+      service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+      service.beta.kubernetes.io/aws-load-balancer-manage-backend-security-group-rules: "false"
+      service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "8081"
+      service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /nginx-ready
+      service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: http

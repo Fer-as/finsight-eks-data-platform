@@ -1,0 +1,6 @@
+apiVersion: v2
+name: finsight-cluster-issuers
+description: Let's Encrypt staging and production ClusterIssuers using Route 53 DNS-01 for the FinSight hostname.
+type: application
+version: 0.1.0
+kubeVersion: ">= 1.25.0-0"

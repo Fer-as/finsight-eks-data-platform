@@ -1,0 +1,6 @@
+apiVersion: v2
+name: finsight
+description: FinSight API, frontend and their host/path Ingress on the F5 NGINX Ingress Controller.
+type: application
+version: 0.1.0
+kubeVersion: ">= 1.25.0-0"
