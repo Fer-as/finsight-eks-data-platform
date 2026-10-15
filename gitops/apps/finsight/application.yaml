@@ -1,0 +1,47 @@
+# Argo CD Application for the FinSight API and frontend (G07.6/G08), managed by the root Application
+# (wave 4: after the ingress, certificate and DNS controllers). Value precedence, lowest first:
+# values.yaml, then image-tags.yaml (tag and digest, written only through the pipeline's GitOps pull
+# request), then the parameters below. Merging an image pull request to main is the deployment; CI
+# never runs kubectl. The ECR repository URLs contain the account ID, so the root Application
+# replaces the placeholders (foundation output repository_urls).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: finsight
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: finsight
+  source:
+    repoURL: https://github.com/Fer-as/finsight-eks-data-platform.git
+    targetRevision: main
+    path: gitops/apps/finsight
+    helm:
+      releaseName: finsight
+      valueFiles:
+        - values.yaml
+        - image-tags.yaml
+      parameters:
+        - name: api.image.repository
+          value: REPLACE_WITH_API_REPOSITORY_URL
+        - name: frontend.image.repository
+          value: REPLACE_WITH_FRONTEND_REPOSITORY_URL
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # The namespace and the finsight-database Secret are created before bootstrap (runbook step 1);
+      # this only covers a rebuilt cluster where the namespace is missing.
+      - CreateNamespace=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

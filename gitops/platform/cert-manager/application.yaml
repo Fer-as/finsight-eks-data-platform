@@ -1,9 +1,13 @@
-# Argo CD Application for cert-manager (G04). Not applied yet: Argo CD is installed later (G05).
+# Argo CD Application for cert-manager (G04), managed by the root Application (G08, wave 0). Its
+# CRDs must exist before the ClusterIssuers (wave 1) and the load balancer controller's webhook
+# certificate (wave 1).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: cert-manager
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   project: default
   destination:
@@ -21,6 +25,16 @@ spec:
       targetRevision: main
       ref: values
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

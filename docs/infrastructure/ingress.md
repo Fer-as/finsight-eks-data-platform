@@ -19,7 +19,7 @@ readiness 8081) the Terraform security-group rules were verified against. v5.7.0
 | Path | Purpose |
 |---|---|
 | `gitops/platform/nginx-ingress/values.yaml` | Controller values |
-| `gitops/platform/nginx-ingress/application.yaml` | Argo CD Application (chart 2.7.3 plus these values). Applied once Argo CD exists (G05) |
+| `gitops/platform/nginx-ingress/application.yaml` | Argo CD Application (chart 2.7.3 plus these values). Managed by the Argo CD root Application at sync wave 2 (G08, [argocd.md](argocd.md)) |
 | `gitops/apps/finsight/` | Minimal FinSight chart: API and frontend Deployments and Services, and the Ingress |
 
 ## Design
@@ -69,8 +69,8 @@ seccomp, and no service-account token. The API probes are `/api/health/ready` an
   render without them. Their URLs come from the foundation output `repository_urls`.
 - **AWS Load Balancer Controller.** It must be running before NGINX is installed. Its values
   are in [load-balancer-controller.md](load-balancer-controller.md).
-- **Argo CD (G05)** for the managed install that G03.1 asks for. Until then, `helm` installs
-  the same pinned chart and values.
+- **Argo CD (G08)** for the managed install that G03.1 asks for: see [argocd.md](argocd.md). A
+  manual `helm` install of the same pinned chart and values remains possible for debugging.
 
 ## Deployment sequence (later, needs the platform deployed and approval)
 
