@@ -86,6 +86,6 @@ production HA design. EBS volumes are zonal: use encrypted gp3 and WaitForFirstC
 set deliberate reclaim policies, and test restore. A backup in retained S3 is distinct from a
 PVC or root disk, which is not protected by this foundation state.
 
-This Mermaid diagram documents implementation ownership. An original draw.io diagram with
-official AWS icons, account/Region/VPC/AZ boundaries and CI/GitOps flows remains an assessment
-deliverable; this diagram is not claimed as that completed deliverable.
+This Mermaid diagram documents Day 2 implementation ownership and is kept for history. The
+assessment architecture diagram is the editable draw.io source
+[finsight-architecture.drawio](finsight-architecture.drawio) and its exported PNGs (G09).

@@ -75,7 +75,7 @@ for the bootstrap and foundation roots on 14 October 2026 (G02.6).
 | G06 | Pipeline 1: Terraform | 10 | In progress | Local validation scripts; plan-only and apply roles, scoped policies and workload boundary applied (#8); apply environment protected; pull-request checks and plan workflow merged (#10, first run passed, plan skipped by the compatibility gate); approval-gated apply written and synthetically tested (#11, not run) | R7.3, R7.5-R7.10, R9.2 |
 | G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | In progress | Implemented: production api/etl/frontend images and `.github/workflows/app.yml` (tests, Checkov, matrix build, Trivy gate, OIDC ECR publish, GitOps pull request). Locally tested on Linux. Not yet run on GitHub; no ECR/Kubernetes evidence | R7.1-R7.9, R4.5, R5.1-R5.7, R8.2, R10.4 |
 | G08 | ArgoCD GitOps | 15 | In progress | Argo CD 3.5.4 (chart 10.9.7) values, app-of-apps root with sync waves and injected account values, Applications for the load balancer controller, cert-manager, ClusterIssuers, NGINX, ExternalDNS and FinSight (values.yaml + image-tags.yaml); 27 offline tests pass; not installed | R8.1-R8.5, R4.2 |
-| G09 | Architecture Design | 10 | Not started | Mermaid diagrams only; the draw.io deliverable does not exist | R2.1-R2.4, R1.2 |
+| G09 | Architecture Design | 10 | In progress | Editable draw.io source `docs/architecture/finsight-architecture.drawio` (3 pages, AWS and Kubernetes shape libraries, 7 flows on layers, legend, trust boundaries) with PNGs exported from it; embedded in README; awaiting owner and assessor review | R2.1-R2.4, R1.2 |
 | | **Total** | **135** | | | |
 
 ## 3. Graded acceptance criteria
@@ -259,9 +259,9 @@ manifests, and Argo CD applies them (G08). There is no second, direct `kubectl` 
 
 | Field | Record |
 |---|---|
-| Status | Not started |
-| Existing implementation | Mermaid diagrams in `docs/architecture/day1.md` and `day2-aws.md` (not the deliverable) |
-| Missing | Original editable draw.io diagram and exported image |
+| Status | In progress |
+| Existing implementation | `docs/architecture/finsight-architecture.drawio` (uncompressed mxGraph XML, 3 pages: overview, Kubernetes platform, CI/CD + IAM + data; native draw.io AWS 2025 and Kubernetes shapes and connectors; each flow on its own layer; legend; trust boundaries; status note: EKS cluster, node group and add-ons previously reached ACTIVE then destroyed for cost control, node Ready not demonstrated, in-cluster workloads implemented but not yet deployed). Originally constructed programmatically as native draw.io cells, then refined after visual review. PNGs exported from that file with draw.io desktop 1.73 (headless): `finsight-architecture.png` (overview), `-kubernetes.png`, `-cicd.png`. README Architecture section embeds the overview. Structural check: XML parses, unique IDs, every connector joins two shapes, all required labels present. Mermaid diagrams in `day1.md`/`day2-aws.md` remain as history |
+| Missing | Owner review in diagrams.net (manual layout touch-ups optional); assessor review |
 | Runtime / repository evidence | `.drawio` source and PNG |
 | Objective verification | Every required component and flow is present and matches the deployed system |
 | Reviewer IDs | R2.1-R2.4, R1.2 |
@@ -269,11 +269,11 @@ manifests, and Argo CD applies them (G08). There is no second, direct `kubectl` 
 
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
-| G09.1 | Original, editable draw.io source with official AWS icons and an exported PNG | Not started | `.drawio` and `.png` | `docs/architecture/` | Opens and edits in diagrams.net |
-| G09.2 | AWS networking: Region, VPC, two AZs, public and private subnets, IGW, NAT gateway, routes, S3 endpoint | Not started | Diagram | Same | Labels match Terraform |
-| G09.3 | EKS, ingress (NGINX and load balancer), DNS (Route 53, ExternalDNS) and certificates (cert-manager, Let's Encrypt) | Not started | Diagram | Same | Every component present |
-| G09.4 | IAM (cluster, node and Pod Identity roles, GitHub OIDC roles), CI/CD (both pipelines, ECR), GitOps (Argo CD) and monitoring (Prometheus, Grafana) | Not started | Diagram | Same | Every component present |
-| G09.5 | Traffic and data flows drawn with a legend: user request, outbound via NAT, CI to ECR to Git to Argo CD, ETL to S3 and PostgreSQL, metrics scraping | Not started | Diagram | Same | Each flow traceable to code or manifests |
+| G09.1 | Original, editable draw.io source with official AWS icons and an exported PNG | Implemented (`.drawio` with draw.io AWS 2025 library icons and groups; PNGs exported from it; review pending) | `.drawio` and `.png` | `docs/architecture/` | Opens and edits in diagrams.net |
+| G09.2 | AWS networking: Region, VPC, two AZs, public and private subnets, IGW, NAT gateway, routes, S3 endpoint | Implemented (eu-west-2, 10.42.0.0/16, eu-west-2a/b, 10.42.0.0/24, 10.42.1.0/24, 10.42.16.0/20, 10.42.32.0/20, IGW, single NAT + EIP, route labels, S3 gateway endpoint, flow logs; matches `defaults.json`; review pending) | Diagram | Same | Labels match Terraform |
+| G09.3 | EKS, ingress (NGINX and load balancer), DNS (Route 53, ExternalDNS) and certificates (cert-manager, Let's Encrypt) | Implemented (EKS 1.36 control plane and data plane on 2 × m7i-flex.large, NLB + AWS Load Balancer Controller, F5 NGINX, Route 53, ExternalDNS, cert-manager, Let's Encrypt; review pending) | Diagram | Same | Every component present |
+| G09.4 | IAM (cluster, node and Pod Identity roles, GitHub OIDC roles), CI/CD (both pipelines, ECR), GitOps (Argo CD) and monitoring (Prometheus, Grafana) | Implemented (cluster, node and Pod Identity roles; GitHub OIDC provider and infra_plan / infra_apply / images roles; terraform.yml, terraform-apply.yml, app.yml; ECR; Argo CD; Prometheus and Grafana; review pending) | Diagram | Same | Every component present |
+| G09.5 | Traffic and data flows drawn with a legend: user request, outbound via NAT, CI to ECR to Git to Argo CD, ETL to S3 and PostgreSQL, metrics scraping | Implemented (7 numbered, coloured flows with legend, each on its own layer: user request, outbound via NAT, app CI/CD + GitOps, infrastructure CI, data/ETL (planned), DNS + TLS, metrics; review pending) | Diagram | Same | Each flow traceable to code or manifests |
 
 ## 4. Reviewer-quality criteria (R1-R13, preserved)
 
@@ -307,7 +307,7 @@ Evidence conventions are in part 6. The graded criteria in part 3 cite these IDs
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
 | R1.1 | Overview states what FinSight does, for whom, and that all data is synthetic, in under 150 words | In progress | Overview section | `README.md` | Read the top section; a newcomer can say what the app does without opening other files |
-| R1.2 | Architecture summary with the exported diagram embedded and links to the detailed architecture docs | Not started | Embedded diagram image and links | `README.md`, `docs/architecture/` | Diagram renders on GitHub; every link resolves |
+| R1.2 | Architecture summary with the exported diagram embedded and links to the detailed architecture docs | In progress (README Architecture section embeds the overview PNG and links the pages and infrastructure docs; rendering on GitHub to be checked after merge) | Embedded diagram image and links | `README.md`, `docs/architecture/` | Diagram renders on GitHub; every link resolves |
 | R1.3 | Key architecture decisions listed with the reason for each (e.g. EKS 1.36 STANDARD, Pod Identity over IRSA, single NAT, managed node group, S3 native locking) | Not started | Decisions section linking to the detailed records | `README.md`, `docs/infrastructure/` | Each decision has a stated reason and a link |
 | R1.4 | Local setup works from a clean clone with the documented prerequisites and commands | In progress | Prerequisites list, commands, expected result | `README.md` "Start locally" section | Follow it on a clean clone; app starts and `scripts/verify.ps1` passes |
 | R1.5 | Deployment section gives the ordered bootstrap, foundation, platform and application steps, with approval gates and links to the runbook | Not started | Deployment section | `README.md`, `docs/infrastructure/runbook.md` | Steps match the runbook and the readiness record |
@@ -317,10 +317,10 @@ Evidence conventions are in part 6. The graded criteria in part 3 cite these IDs
 
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
-| R2.1 | Original, editable draw.io source committed (not a copied template) | Not started | `.drawio` file | `docs/architecture/finsight-architecture.drawio` | Opens in diagrams.net and is editable |
-| R2.2 | Network layer labelled: Region, VPC CIDR, two AZs, public and private subnets with CIDRs, internet gateway, single NAT gateway, route to the internet, S3 gateway endpoint | Not started | Diagram | Same file and exported PNG | Compare every label with `infra/terraform/config/defaults.json` and the network module |
-| R2.3 | Traffic and platform layer labelled: Route 53, load balancer, ingress controller, cert-manager, ExternalDNS, EKS control plane, managed nodes, namespaces, services, Argo CD, Prometheus and Grafana | Not started | Diagram | Same | Every component shown is deployed or explicitly marked "planned" |
-| R2.4 | Data flow drawn: user request path, ETL reading and writing S3 raw/curated, PostgreSQL, CI to ECR to Argo CD, and the GitHub OIDC trust | Not started | Diagram with arrows and a legend | Same | Trace each flow against the code and manifests |
+| R2.1 | Original, editable draw.io source committed (not a copied template) | Implemented (`docs/architecture/finsight-architecture.drawio`; review pending) | `.drawio` file | `docs/architecture/finsight-architecture.drawio` | Opens in diagrams.net and is editable |
+| R2.2 | Network layer labelled: Region, VPC CIDR, two AZs, public and private subnets with CIDRs, internet gateway, single NAT gateway, route to the internet, S3 gateway endpoint | Implemented in the diagram (review pending) | Diagram | Same file and exported PNG | Compare every label with `infra/terraform/config/defaults.json` and the network module |
+| R2.3 | Traffic and platform layer labelled: Route 53, load balancer, ingress controller, cert-manager, ExternalDNS, EKS control plane, managed nodes, namespaces, services, Argo CD, Prometheus and Grafana | Implemented in the diagram; PostgreSQL, ETL and dev-images marked planned (review pending) | Diagram | Same | Every component shown is deployed or explicitly marked "planned" |
+| R2.4 | Data flow drawn: user request path, ETL reading and writing S3 raw/curated, PostgreSQL, CI to ECR to Argo CD, and the GitHub OIDC trust | Implemented in the diagram with legend (review pending) | Diagram with arrows and a legend | Same | Trace each flow against the code and manifests |
 
 ### 4.3 Short application demonstration
 
