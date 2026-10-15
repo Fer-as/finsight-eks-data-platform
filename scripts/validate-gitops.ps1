@@ -1,7 +1,7 @@
-# Offline validation of the Argo CD GitOps layout (G08): renders the root Application with sample
-# values, then runs tests/gitops in a pinned Python container with pinned helm, kustomize (the
-# version Argo CD v3.5.4 bundles) and kubeconform. Needs Docker and network access for chart pulls
-# and schemas. Never contacts a cluster or AWS.
+# Offline validation of the Argo CD GitOps layout (G08) and the monitoring stack (G05): renders
+# the root Application with sample values, then runs tests/gitops in a pinned Python container
+# with pinned helm, kustomize (the version Argo CD v3.5.4 bundles), kubeconform and promtool.
+# Needs Docker and network access for chart pulls and schemas. Never contacts a cluster or AWS.
 [CmdletBinding()]
 param()
 $ErrorActionPreference = "Stop"
@@ -14,7 +14,9 @@ $python = "python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512d
 $tools = @(
     @{ Name = "helm"; Image = "alpine/helm:3.22.0@sha256:70ed3f7b02ab2eee12aa520ad6870305db8a82516b07aff62f5656c657a26e2a"; Path = "/usr/bin/helm" },
     @{ Name = "kustomize"; Image = "registry.k8s.io/kustomize/kustomize:v5.8.1@sha256:899fcd3bc898160e62bcaf82932b0cb29ba38d16272353db2e7acbba82129429"; Path = "/app/kustomize" },
-    @{ Name = "kubeconform"; Image = "ghcr.io/yannh/kubeconform:v0.8.0@sha256:faffaf43f95aa6425306e1ab8d6fcad72acb9049158f38e574c085ea1ec0f64e"; Path = "/kubeconform" }
+    @{ Name = "kubeconform"; Image = "ghcr.io/yannh/kubeconform:v0.8.0@sha256:faffaf43f95aa6425306e1ab8d6fcad72acb9049158f38e574c085ea1ec0f64e"; Path = "/kubeconform" },
+    # promtool from the Prometheus version kube-prometheus-stack 91.8.2 deploys (G05 rule and query checks).
+    @{ Name = "promtool"; Image = "quay.io/prometheus/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e"; Path = "/bin/promtool" }
 )
 foreach ($tool in $tools) {
     $container = (docker create $tool.Image).Trim()

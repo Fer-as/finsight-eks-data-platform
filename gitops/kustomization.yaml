@@ -2,7 +2,7 @@
 # manages. Each child file is also the single definition of that component; sync waves in the
 # files order the bootstrap:
 #   0 cert-manager (CRDs)
-#   1 aws-load-balancer-controller, cluster-issuers
+#   1 aws-load-balancer-controller, cluster-issuers, monitoring (CRDs for ServiceMonitors and rules)
 #   2 nginx-ingress (NLB, needs the load balancer controller)
 #   3 external-dns
 #   4 finsight (needs images in image-tags.yaml and the finsight-database Secret)
@@ -14,8 +14,7 @@ resources:
   - platform/cert-manager/application.yaml
   - platform/aws-load-balancer-controller/application.yaml
   - platform/cluster-issuers/application.yaml
+  - platform/monitoring/application.yaml
   - platform/nginx-ingress/application.yaml
   - platform/external-dns/application.yaml
   - apps/finsight/application.yaml
-  # G05 extension point: add platform/monitoring/application.yaml (Prometheus and Grafana) here
-  # with sync wave 3.

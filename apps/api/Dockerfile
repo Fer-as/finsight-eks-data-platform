@@ -29,7 +29,7 @@ CMD ["uvicorn", "finsight_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
 # come from the standard PG* environment variables at run time; nothing is baked in.
 FROM python-os AS api
 # Only the API's own dependencies (no pandas/numpy/pyarrow), at the versions pinned in the lock.
-RUN pip install --no-cache-dir -c requirements.lock fastapi uvicorn psycopg psycopg-binary
+RUN pip install --no-cache-dir -c requirements.lock fastapi uvicorn psycopg psycopg-binary prometheus-client
 ENV PYTHONPATH=/app/apps/api/src
 COPY config/synthetic.json config/synthetic.json
 COPY apps/api/src apps/api/src

@@ -20,7 +20,7 @@ The pins for NGINX, cert-manager and ExternalDNS are unchanged; see [ingress.md]
 |---|---|
 | `gitops/argocd/values.yaml` | Argo CD Helm values. Installed once with Helm; Argo CD does not manage itself |
 | `gitops/argocd/root-application.yaml` | Root Application (app of apps), applied once after rendering |
-| `gitops/kustomization.yaml` | The child Applications the root manages, plus the G05 extension point |
+| `gitops/kustomization.yaml` | The child Applications the root manages |
 | `gitops/platform/*/application.yaml`, `gitops/apps/finsight/application.yaml` | One Application per component, each with its sync wave and sync policy |
 | `scripts/render-argocd-root.ps1` | Fills the root Application with this account's values into an ignored file |
 | `scripts/validate-gitops.ps1`, `tests/gitops/test_argocd.py` | Offline validation |
@@ -46,10 +46,10 @@ merely applied.
 | 0 | cert-manager | Nothing; installs its CRDs (`ServerSideApply`) |
 | 1 | aws-load-balancer-controller | cert-manager, which issues its webhook certificate (`enableCertManager`). A render-time certificate would differ on every render: permanently OutOfSync, and rotated by self-heal |
 | 1 | cluster-issuers | cert-manager CRDs; the Issuers are Ready only after ACME registration |
+| 1 | monitoring (G05) | cert-manager, which issues the operator webhook certificate. Its CRDs (ServiceMonitor, PrometheusRule) must exist before NGINX and FinSight create theirs. Needs the `grafana-admin` Secret; see [monitoring.md](monitoring.md) |
 | 2 | nginx-ingress | The load balancer controller, so the NLB is created by it with the Terraform security group. The Service is Healthy only once the NLB has an address |
 | 3 | external-dns | NGINX has published the NLB address in Ingress status |
 | 4 | finsight | Everything above. Also needs published images and the `finsight-database` Secret |
-| (3) | monitoring (G05, not yet written) | Add `platform/monitoring/application.yaml` to `gitops/kustomization.yaml` |
 
 **Account-specific values are never committed.** The children keep their `REPLACE_WITH_*`
 placeholders. The root Application holds Kustomize JSON patches that replace them in the cluster:
@@ -116,7 +116,7 @@ merge does not trigger another build and publish.
 
 **Steps**
 
-1. **Database Secret.** Create it outside Git (values from the database task; never committed or
+1. **Secrets.** Create the Grafana admin Secret as in [monitoring.md](monitoring.md) step 1. Then create the database Secret outside Git (values from the database task; never committed or
    printed):
 
    ```sh
@@ -182,7 +182,7 @@ merge does not trigger another build and publish.
 | Criterion | Demonstration | Evidence |
 |---|---|---|
 | G08.1, R8.5 | `kubectl -n argocd get pods`; `helm list -n argocd` shows chart 10.9.7; `kubectl -n argocd get secret argocd-initial-admin-secret` returns NotFound | `docs/screenshots/argocd/` |
-| G08.2, R8.1 | `argocd app get finsight-root` resource tree shows the six children. Use `argocd app list` and check that every workload namespace is owned by an Application | Screenshot of the UI tree |
+| G08.2, R8.1 | `argocd app get finsight-root` resource tree shows the seven children. Use `argocd app list` and check that every workload namespace is owned by an Application | Screenshot of the UI tree |
 | G08.3 | PR changing `frontend.replicas` from 1 to 2 in `gitops/apps/finsight/values.yaml`. After merge, within 3 minutes (or `argocd app get finsight --refresh`), the new revision syncs: `argocd app get finsight`, `kubectl -n finsight get deploy finsight-frontend` | PR link, sync history |
 | G08.4, R4.2 | `argocd app list`: every Application Synced and Healthy | UI screenshot |
 | G08.5, R8.4 | Harmless drift: `kubectl -n finsight scale deploy/finsight-frontend --replicas=3`. Self-heal returns it to the Git value within seconds: `kubectl -n finsight get deploy finsight-frontend -w`, `argocd app get finsight` | Before and after output in `docs/evidence/` |
@@ -191,7 +191,7 @@ merge does not trigger another build and publish.
 
 ## Local validation (15 October 2026)
 
-`scripts/validate-gitops.ps1` passed (27 tests). It runs pytest in the pinned Python 3.12 image with
+`scripts/validate-gitops.ps1` passed: 27 tests for G08, 41 since G05 added its monitoring tests. It runs pytest in the pinned Python 3.12 image with
 helm 3.22.0, kustomize 5.8.1 and kubeconform 0.8.0. Kubernetes 1.36.0 schemas are used, plus the
 CRDs catalog for Argo CD, cert-manager and load balancer controller resources; missing schemas fail.
 
@@ -211,7 +211,7 @@ CRDs catalog for Argo CD, cert-manager and load balancer controller resources; m
     expected.
   - The Application health check is configured.
 - **Root build**
-  - kustomize build with the root patches yields the six children.
+  - kustomize build with the root patches yields the seven children.
   - No placeholder or token is left.
   - Each injected value is at the intended parameter, and nothing else in the child changes.
   - A child with reordered parameters makes the build fail at the `test` operation.
@@ -220,7 +220,7 @@ CRDs catalog for Argo CD, cert-manager and load balancer controller resources; m
 - **Rendering**
   - Each Application renders exactly as Argo CD would: the chart, its value files and the injected
     parameters.
-  - All six pass kubeconform. Both repository charts pass `helm lint --strict`.
+  - All seven pass kubeconform. Both repository charts pass `helm lint --strict`.
 - **image-tags.yaml**
   - The Application reads `values.yaml` then `image-tags.yaml`.
   - A digest there renders `repository@digest`, and a tag alone renders `repository:tag`.
@@ -250,7 +250,7 @@ CRDs catalog for Argo CD, cert-manager and load balancer controller resources; m
 ## Live evidence outstanding
 
 - Argo CD pods Running and the initial secret deleted (G08.1).
-- The tree of the six children (G08.2).
+- The tree of the seven children (G08.2).
 - A Git change reconciled (G08.3).
 - All Applications Synced and Healthy (G08.4).
 - Drift reverted (G08.5).

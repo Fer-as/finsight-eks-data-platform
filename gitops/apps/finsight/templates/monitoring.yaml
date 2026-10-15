@@ -1,0 +1,64 @@
+{{- if .Values.monitoring.enabled }}
+# G05: FinSight's own monitoring objects, picked up by the monitoring stack (gitops/platform/monitoring).
+# Needs the Prometheus Operator CRDs, which the monitoring Application (wave 1) installs before
+# this chart (wave 4).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: finsight-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: finsight-api
+    {{- include "finsight.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: finsight-api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.monitoring.scrapeInterval }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: finsight-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "finsight.labels" . | nindent 4 }}
+spec:
+  groups:
+    - name: finsight-api
+      rules:
+        - alert: FinSightApiDown
+          expr: max(up{job="finsight-api", namespace="{{ .Release.Namespace }}"}) == 0 or absent(up{job="finsight-api", namespace="{{ .Release.Namespace }}"})
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: FinSight API is not being scraped successfully
+            description: No finsight-api target in namespace {{ .Release.Namespace }} has been up for 2 minutes.
+        - alert: FinSightApiHighErrorRate
+          expr: |
+            sum(rate(finsight_api_requests_total{namespace="{{ .Release.Namespace }}", status=~"5.."}[5m]))
+              / sum(rate(finsight_api_requests_total{namespace="{{ .Release.Namespace }}"}[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: More than 5% of FinSight API requests fail
+            description: '{{`{{ $value | humanizePercentage }}`}} of API requests returned 5xx over the last 5 minutes.'
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: finsight-dashboard
+  namespace: {{ .Release.Namespace }}
+  labels:
+    # Loaded by the Grafana dashboard sidecar, which searches all namespaces.
+    grafana_dashboard: "1"
+    {{- include "finsight.labels" . | nindent 4 }}
+data:
+  finsight.json: |-
+    {{- .Files.Get "dashboards/finsight.json" | nindent 4 }}
+{{- end }}

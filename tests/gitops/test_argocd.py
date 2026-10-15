@@ -47,7 +47,9 @@ DIGEST = "sha256:" + "a" * 64
 DEPENDS_ON = {
     "aws-load-balancer-controller": ["cert-manager"],
     "cluster-issuers": ["cert-manager"],
-    "nginx-ingress": ["aws-load-balancer-controller"],
+    # Webhook certificate from cert-manager; its CRDs back the NGINX and FinSight monitors.
+    "monitoring": ["cert-manager"],
+    "nginx-ingress": ["aws-load-balancer-controller", "monitoring"],
     "external-dns": ["nginx-ingress"],
     "finsight": [
         "cert-manager",
@@ -55,6 +57,7 @@ DEPENDS_ON = {
         "cluster-issuers",
         "nginx-ingress",
         "external-dns",
+        "monitoring",
     ],
 }
 

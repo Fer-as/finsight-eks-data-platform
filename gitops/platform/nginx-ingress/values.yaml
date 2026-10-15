@@ -7,6 +7,9 @@
 # documented helm command. AWS can only attach security groups to an NLB when it is created.
 controller:
   kind: deployment
+  # G05: per-upstream latency histogram (labels code, service, resource_*), giving request rate,
+  # status codes and latency per FinSight Service. Requires prometheus.create.
+  enableLatencyMetrics: true
   # One controller per worker (two m7i-flex.large nodes); a disruption budget keeps one serving.
   replicaCount: 2
   podDisruptionBudget:
@@ -72,3 +75,13 @@ controller:
       service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "8081"
       service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /nginx-ready
       service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: http
+
+# G05: metrics on port 9113 (cluster-internal ClusterIP Service, not on the NLB) and a ServiceMonitor
+# for the monitoring stack, whose CRDs exist before this Application (monitoring is wave 1).
+prometheus:
+  create: true
+  port: 9113
+  service:
+    create: true
+  serviceMonitor:
+    create: true
