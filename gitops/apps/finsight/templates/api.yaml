@@ -2,9 +2,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: finsight-api
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: finsight-api
     {{- include "finsight.labels" . | nindent 4 }}
+  annotations:
+    checkov.io/skip1: CKV_K8S_35=libpq reads PG* environment variables; secret-file delivery needs an application change (R5 hardening)
+    checkov.io/skip2: CKV2_K8S_6=VPC CNI network-policy enforcement is not enabled in this cluster yet (R5 hardening, #17)
 spec:
   replicas: {{ .Values.api.replicas }}
   selector:
@@ -17,13 +21,17 @@ spec:
         {{- include "finsight.labels" . | nindent 8 }}
     spec:
       automountServiceAccountToken: false
-      {{- include "finsight.podSecurity" . | nindent 6 }}
+      {{- include "finsight.podSecurity" .Values.api | nindent 6 }}
       containers:
         - name: api
-          image: "{{ required "api.image.repository is required" .Values.api.image.repository }}:{{ required "api.image.tag is required" .Values.api.image.tag }}"
+          image: {{ include "finsight.image" .Values.api.image | quote }}
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: {{ .Values.api.port }}
+          envFrom:
+            - secretRef:
+                name: {{ required "api.databaseSecretName is required" .Values.api.databaseSecretName }}
           readinessProbe:
             httpGet:
               path: /api/health/ready
@@ -46,6 +54,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: finsight-api
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: finsight-api
     {{- include "finsight.labels" . | nindent 4 }}

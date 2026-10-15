@@ -2,9 +2,12 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: finsight-frontend
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: finsight-frontend
     {{- include "finsight.labels" . | nindent 4 }}
+  annotations:
+    checkov.io/skip1: CKV2_K8S_6=VPC CNI network-policy enforcement is not enabled in this cluster yet (R5 hardening, #17)
 spec:
   replicas: {{ .Values.frontend.replicas }}
   selector:
@@ -17,10 +20,11 @@ spec:
         {{- include "finsight.labels" . | nindent 8 }}
     spec:
       automountServiceAccountToken: false
-      {{- include "finsight.podSecurity" . | nindent 6 }}
+      {{- include "finsight.podSecurity" .Values.frontend | nindent 6 }}
       containers:
         - name: frontend
-          image: "{{ required "frontend.image.repository is required" .Values.frontend.image.repository }}:{{ required "frontend.image.tag is required" .Values.frontend.image.tag }}"
+          image: {{ include "finsight.image" .Values.frontend.image | quote }}
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: {{ .Values.frontend.port }}
@@ -46,6 +50,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: finsight-frontend
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: finsight-frontend
     {{- include "finsight.labels" . | nindent 4 }}

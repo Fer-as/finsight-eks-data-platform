@@ -73,7 +73,7 @@ for the bootstrap and foundation roots on 14 October 2026 (G02.6).
 | G04 | CertManager and ExternalDNS | 20 | In progress | Pod Identity roles in Terraform; cert-manager, ClusterIssuers, ExternalDNS and Ingress TLS implemented and validated locally; not deployed | R6.3-R6.5, R4.7 |
 | G05 | Monitoring Setup | 15 | Not started | Nothing installed | R4.3, R4.4 |
 | G06 | Pipeline 1: Terraform | 10 | In progress | Local validation scripts; plan-only and apply roles, scoped policies and workload boundary applied (#8); apply environment protected; pull-request checks and plan workflow merged (#10, first run passed, plan skipped by the compatibility gate); approval-gated apply written and synthetically tested (#11, not run) | R7.3, R7.5-R7.10, R9.2 |
-| G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | In progress | Local tests, Dockerfiles, ECR repositories and publisher role exist; no workflow; production frontend image missing | R7.1-R7.9, R4.5, R5.1-R5.7, R8.2, R10.4 |
+| G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | In progress | Implemented: production api/etl/frontend images and `.github/workflows/app.yml` (tests, Checkov, matrix build, Trivy gate, OIDC ECR publish, GitOps pull request). Locally tested on Linux. Not yet run on GitHub; no ECR/Kubernetes evidence | R7.1-R7.9, R4.5, R5.1-R5.7, R8.2, R10.4 |
 | G08 | ArgoCD GitOps | 15 | Not started | No manifests or Argo CD | R8.1-R8.5, R4.2 |
 | G09 | Architecture Design | 10 | Not started | Mermaid diagrams only; the draw.io deliverable does not exist | R2.1-R2.4, R1.2 |
 | | **Total** | **135** | | | |
@@ -218,7 +218,7 @@ manifests, and Argo CD applies them (G08). There is no second, direct `kubectl` 
 |---|---|
 | Status | In progress |
 | Existing implementation | Local tests (Day 1: 37 Python and 6 frontend passed), API Dockerfile with non-root user, frontend development Dockerfile, ECR repositories and image publisher role (applied 14 October 2026), local Checkov script |
-| Missing | Workflow; production frontend image; ETL image; Trivy; ECR push; GitOps update; failing-run evidence |
+| Missing | GitHub runs (green and failing), dev-images environment + IMAGE_PUBLISHING_ENABLED, Actions permission to open pull requests, ECR digests, Argo CD rollout evidence |
 | Runtime / repository evidence | Workflow runs, image digests in ECR, Trivy and Checkov reports, manifest-update commits |
 | Objective verification | A commit produces scanned images in ECR and a deployed change; a vulnerable or failing change is blocked |
 | Reviewer IDs | R7.1, R7.2, R7.4-R7.9, R4.5, R5.1-R5.7, R8.2, R8.3, R10.4 |
@@ -226,14 +226,14 @@ manifests, and Argo CD applies them (G08). There is no second, direct `kubectl` 
 
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
-| G07.1 | Checkov runs against Terraform (and Kubernetes manifests) in the pipeline and fails on new findings | In progress (local script only) | Workflow and report | `.github/workflows/` | An insecure test change fails |
-| G07.2 | Application tests run: pytest (unit and PostgreSQL integration) and Vitest | Not started | Workflow and run | `.github/workflows/` | A failing test fails the run |
-| G07.3 | Production Docker images built for api, etl and frontend with one matrix job | Not started (frontend has only a development stage, R5.7) | Dockerfiles and workflow | `apps/*/Dockerfile`, `.github/workflows/` | Three images built from one job definition |
-| G07.4 | Trivy scans each image and blocks publishing on fixable HIGH/CRITICAL findings | Not started | Workflow and results | `.github/workflows/`, `docs/evidence/` | A known-vulnerable base image fails the job |
-| G07.5 | Images pushed to ECR via the OIDC image role, tagged with the commit SHA | Not started | ECR image list | `docs/evidence/` | Tag equals the commit; no `latest` |
-| G07.6 | Deployment to EKS: the pipeline updates the GitOps image reference and Argo CD rolls it out | Not started | Manifest-update commit; Argo CD sync; rollout | GitOps directory, `docs/screenshots/argocd/` | The running pod's image digest equals the ECR digest |
-| G07.7 | Successful end-to-end run recorded | Not started | Run screenshot | `docs/screenshots/cicd/` | All jobs green |
-| G07.8 | Appropriately failing runs recorded: a failing test and a security finding each stop publishing | Not started | Run screenshots | `docs/screenshots/cicd/` | Publish and deploy jobs skipped after the failure |
+| G07.1 | Checkov runs against Terraform (and Kubernetes manifests) in the pipeline and fails on new findings | In progress (app.yml `checkov` job scans Terraform, Dockerfiles and rendered FinSight/ClusterIssuer manifests and fails on findings; all exit 0 locally; Kubernetes skips documented on resources; not yet run on GitHub) | Workflow and report | `.github/workflows/` | An insecure test change fails |
+| G07.2 | Application tests run: pytest (unit and PostgreSQL integration) and Vitest | In progress (app.yml `python` job: ruff + pytest with PostgreSQL service (37 passed locally on Linux, integration included); `frontend` job: Prettier, Vitest 6/6, build; not yet run on GitHub) | Workflow and run | `.github/workflows/` | A failing test fails the run |
+| G07.3 | Production Docker images built for api, etl and frontend with one matrix job | In progress (one `images` matrix job builds api, etl and frontend production targets; built locally; not yet run on GitHub) | Dockerfiles and workflow | `apps/*/Dockerfile`, `.github/workflows/` | Three images built from one job definition |
+| G07.4 | Trivy scans each image and blocks publishing on fixable HIGH/CRITICAL findings | In progress (Trivy 0.75.0 gate fails on fixable HIGH/CRITICAL; unfixed findings listed in the job summary; local gate passes for all three images (api/etl 44 unfixed Debian findings, frontend 0); not yet run on GitHub) | Workflow and results | `.github/workflows/`, `docs/evidence/` | A known-vulnerable base image fails the job |
+| G07.5 | Images pushed to ECR via the OIDC image role, tagged with the commit SHA | In progress (`publish` job: main only, environment dev-images, OIDC image role, pushes the scanned artifacts tagged with the commit SHA, never latest; blocked until dev-images and IMAGE_PUBLISHING_ENABLED are configured; no image pushed yet) | ECR image list | `docs/evidence/` | Tag equals the commit; no `latest` |
+| G07.6 | Deployment to EKS: the pipeline updates the GitOps image reference and Argo CD rolls it out | In progress (`gitops` job writes tag + digest to image-tags.yaml on a branch and opens a pull request, never pushes to main; chart renders repository@digest; needs "Allow GitHub Actions to create pull requests" and Argo CD; not run) | Manifest-update commit; Argo CD sync; rollout | GitOps directory, `docs/screenshots/argocd/` | The running pod's image digest equals the ECR digest |
+| G07.7 | Successful end-to-end run recorded | Not started (needs the first green GitHub run) | Run screenshot | `docs/screenshots/cicd/` | All jobs green |
+| G07.8 | Appropriately failing runs recorded: a failing test and a security finding each stop publishing | Not started (planned: a failing test and a Trivy-blocked image, each stopping publish) | Run screenshots | `docs/screenshots/cicd/` | Publish and deploy jobs skipped after the failure |
 
 ### G08 ArgoCD GitOps (15 points)
 
@@ -354,7 +354,7 @@ Each screenshot must come from the real deployed environment and be dated in its
 | R5.4 | Readiness and liveness probes on every long-running container, pointing at real health endpoints | Not started | Manifests and health endpoints | Kubernetes manifests, `apps/api` | Kill the process or block the endpoint and observe restart or removal from the Service |
 | R5.5 | Rolling updates with `maxUnavailable` / `maxSurge` set; a new release rolls out without downtime | Not started | Deployment spec and rollout output | Kubernetes manifests, `docs/evidence/` | `kubectl rollout status` during a version change while requests continue |
 | R5.6 | CPU and memory requests and limits set for every container | Not started | Manifests | Kubernetes manifests | Inspect manifests; pods fit on two m7i.large nodes |
-| R5.7 | Production frontend image serves the built static assets (the current frontend Dockerfile provides only a development stage) | Not started | Production build stage | `apps/frontend/Dockerfile` | Image runs without the dev server and passes Trivy |
+| R5.7 | Production frontend image serves the built static assets (the current frontend Dockerfile provides only a development stage) | In progress (production target: Vite build served by unprivileged NGINX on 8080; built and smoke-tested locally; not published) | Production build stage | `apps/frontend/Dockerfile` | Image runs without the dev server and passes Trivy |
 
 ### 4.6 Secrets, TLS, ingress and workload identity
 
