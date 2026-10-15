@@ -1,0 +1,31 @@
+{{- $zone := required "route53.hostedZoneID is required (config dns.zone_id)" .Values.route53.hostedZoneID }}
+{{- if not (regexMatch "^Z[A-Z0-9]+$" $zone) }}
+{{- fail "route53.hostedZoneID must be a Route 53 zone ID without the /hostedzone/ prefix" }}
+{{- end }}
+{{- $host := required "hostname is required" .Values.hostname }}
+{{- if not (regexMatch "^([a-z0-9]([a-z0-9-]*[a-z0-9])?\\.)+[a-z]{2,63}$" $host) }}
+{{- fail "hostname must be a lowercase fully qualified name without a trailing dot" }}
+{{- end }}
+{{- range $issuer := list (dict "name" "letsencrypt-staging" "server" "https://acme-staging-v02.api.letsencrypt.org/directory") (dict "name" "letsencrypt-production" "server" "https://acme-v02.api.letsencrypt.org/directory") }}
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ $issuer.name }}
+spec:
+  acme:
+    server: {{ $issuer.server }}
+    {{- with $.Values.email }}
+    email: {{ . | quote }}
+    {{- end }}
+    privateKeySecretRef:
+      name: {{ $issuer.name }}-account-key
+    solvers:
+      - selector:
+          dnsNames:
+            - {{ $host | quote }}
+        dns01:
+          route53:
+            region: {{ $.Values.route53.region }}
+            hostedZoneID: {{ $zone }}
+{{- end }}

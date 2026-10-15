@@ -69,8 +69,8 @@ for the bootstrap and foundation roots on 14 October 2026 (G02.6).
 |---|---|---:|---|---|---|
 | G01 | Board / Tickets | 10 | In progress | Public board with 31 issues; PRs #33 and #35 merged and closed #5 and #6; screenshots pending | R11.2 |
 | G02 | Terraform for AWS Infrastructure | 15 | In progress | Modules, remote state and two of three roots applied; platform (VPC, EKS, nodes) not applied; security groups defined and tested (#7); load balancer controller role defined and tested locally (#34) | R9.1-R9.6, R6.6 |
-| G03 | NGINX Ingress Controller | 10 | Not started | Chart choice planned; nothing installed | R6.4 |
-| G04 | CertManager and ExternalDNS | 20 | In progress | ExternalDNS and cert-manager Pod Identity roles in Terraform (not applied); no controllers or certificates | R6.3-R6.5, R4.7 |
+| G03 | NGINX Ingress Controller | 10 | In progress | F5 NGINX 5.6.3 / chart 2.7.3 values, Argo CD Application and FinSight Ingress chart implemented and validated locally; not deployed | R6.4 |
+| G04 | CertManager and ExternalDNS | 20 | In progress | Pod Identity roles in Terraform; cert-manager, ClusterIssuers, ExternalDNS and Ingress TLS implemented and validated locally; not deployed | R6.3-R6.5, R4.7 |
 | G05 | Monitoring Setup | 15 | Not started | Nothing installed | R4.3, R4.4 |
 | G06 | Pipeline 1: Terraform | 10 | In progress | Local validation scripts; plan-only and apply roles, scoped policies and workload boundary applied (#8); apply environment protected; pull-request checks and plan workflow merged (#10, first run passed, plan skipped by the compatibility gate); approval-gated apply written and synthetically tested (#11, not run) | R7.3, R7.5-R7.10, R9.2 |
 | G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | In progress | Local tests, Dockerfiles, ECR repositories and publisher role exist; no workflow; production frontend image missing | R7.1-R7.9, R4.5, R5.1-R5.7, R8.2, R10.4 |
@@ -129,9 +129,9 @@ Every category has a record table and criteria rows. Tickets are on the
 
 | Field | Record |
 |---|---|
-| Status | Not started |
-| Existing implementation | Decision record only: F5 NGINX Ingress Controller planned; retired community ingress-nginx not to be used; Traefik not used |
-| Missing | Helm values, Argo CD application, Ingress resources, routing tests |
+| Status | In progress (local implementation; no live evidence) |
+| Existing implementation | Implemented locally (not deployed): F5 NGINX Ingress Controller 5.6.3 / chart 2.7.3 values and Argo CD Application (`gitops/platform/nginx-ingress`), FinSight chart with Services and host/path Ingress (`gitops/apps/finsight`); helm lint/template and kubeconform (Kubernetes 1.36) pass; see `docs/infrastructure/ingress.md` |
+| Missing | Live deployment and evidence (controller pods, NLB in public subnets, curl results), production frontend image (R5.7), Argo CD (G05), TLS redirect after G04 |
 | Runtime / repository evidence | Controller pods, LoadBalancer service, Ingress objects, `curl` results |
 | Objective verification | Requests reach the correct services by host and path; wrong host or path is rejected |
 | Reviewer IDs | R6.4, R4.7 |
@@ -139,10 +139,10 @@ Every category has a record table and criteria rows. Tickets are on the
 
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
-| G03.1 | F5 NGINX Ingress Controller installed from its official Helm chart at a pinned version supporting Kubernetes 1.36, managed by Argo CD | Not started | Helm values and Argo CD Application | GitOps directory | `kubectl get pods -n <nginx ns>` Running; chart version equals the pin |
-| G03.2 | Controller exposed through a load balancer in the public subnets while workloads stay on private nodes | Not started | Service and load balancer description | `docs/evidence/` | Load balancer subnets are the public ones |
-| G03.3 | Ingress routes the hostname to the frontend Service and `/api` to the API Service | Not started | Ingress manifests; `curl` output | GitOps directory, `docs/evidence/` | `curl https://<host>/` returns the app; `/api/health` returns the API response |
-| G03.4 | Negative routing: unknown host or path gets a 404 from NGINX, and HTTP redirects to HTTPS | Not started | `curl` output | `docs/evidence/` | Status codes recorded |
+| G03.1 | F5 NGINX Ingress Controller installed from its official Helm chart at a pinned version supporting Kubernetes 1.36, managed by Argo CD | In progress (pinned chart 2.7.3 / controller 5.6.3, values and Argo CD Application written and validated locally; Argo CD not installed; not deployed) | Helm values and Argo CD Application | GitOps directory | `kubectl get pods -n <nginx ns>` Running; chart version equals the pin |
+| G03.2 | Controller exposed through a load balancer in the public subnets while workloads stay on private nodes | In progress (Service uses loadBalancerClass service.k8s.aws/nlb, internet-facing, IP targets, Terraform security group; pods on private nodes; not deployed) | Service and load balancer description | `docs/evidence/` | Load balancer subnets are the public ones |
+| G03.3 | Ingress routes the hostname to the frontend Service and `/api` to the API Service | In progress (Ingress: eks.feras-dev.co.uk, / and /assets to frontend, /api to API; Services in the FinSight chart; needs production frontend image and deployment) | Ingress manifests; `curl` output | GitOps directory, `docs/evidence/` | `curl https://<host>/` returns the app; `/api/health` returns the API response |
+| G03.4 | Negative routing: unknown host or path gets a 404 from NGINX, and HTTP redirects to HTTPS | In progress (only /, /assets and /api routed, so other paths and hosts get the NGINX 404; HTTPS redirect follows once TLS is enabled in G04; no curl evidence yet) | `curl` output | `docs/evidence/` | Status codes recorded |
 
 ### G04 CertManager and ExternalDNS (20 points)
 
@@ -151,8 +151,8 @@ Certificate issuance, renewal, DNS management and the final HTTPS result are tes
 | Field | Record |
 |---|---|
 | Status | In progress |
-| Existing implementation | Public hosted zone exists and is read by the platform root; hostname validated in config |
-| Missing | cert-manager and ExternalDNS installs, ClusterIssuers, Ingress TLS configuration, applying the DNS identity roles |
+| Existing implementation | Public hosted zone; Terraform Pod Identity roles for cert-manager and ExternalDNS (name-scoped Route 53 policies, tested). Implemented locally, not deployed: cert-manager v1.21.2 values + Argo CD Application, staging/production DNS-01 ClusterIssuers chart, ExternalDNS 1.23.0 (v0.23.0) values + Argo CD Application, Ingress TLS switch; helm lint/template, kubeconform (Kubernetes 1.36) and record-name/IAM checks pass; see `docs/infrastructure/dns-and-certificates.md` |
+| Missing | Live deployment and evidence (pods, DNS-01 challenges, Ready certificate, renewal, Route 53 records, HTTPS); Argo CD (G05); decision on ExternalDNS `policy: sync` for the removal test (default upsert-only) |
 | Runtime / repository evidence | Certificate and Order status, Route 53 record listing, renewal output, `curl -v` |
 | Objective verification | Each of G04.2-G04.6 shown independently |
 | Reviewer IDs | R6.3, R6.4, R6.5, R4.7, R3.1 |
@@ -160,12 +160,12 @@ Certificate issuance, renewal, DNS management and the final HTTPS result are tes
 
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
-| G04.1 | cert-manager installed (pinned chart, via Argo CD) with Let's Encrypt staging and production ClusterIssuers; staging tested first | Not started | Manifests; issuer status | GitOps directory | Both issuers Ready |
-| G04.2 | Certificate for the hostname issued automatically from the Ingress or Certificate resource by the production issuer | Not started | `kubectl get certificate`; certificate details | `docs/evidence/` | Ready=True; issuer is Let's Encrypt; SAN equals the hostname |
-| G04.3 | Automatic renewal configured and demonstrated | Not started | `renewBefore` setting; forced renewal output showing a new serial | GitOps directory, `docs/evidence/` | Serial before and after differ; the secret updated without manual edits |
-| G04.4 | ExternalDNS installed with a Pod Identity role allowed to change only the one hosted zone, using a TXT ownership registry | In progress (role, zone- and name-scoped policy and association in Terraform with unit tests, [#6](https://github.com/Fer-as/finsight-eks-data-platform/issues/6); not applied; controller not installed) | Helm values; Terraform role; IAM policy | GitOps directory, `infra/terraform/` | Policy names the single zone; controller logs show the zone filter |
-| G04.5 | DNS records managed dynamically: creating the Ingress creates the A/alias record; changing or removing it updates or removes the record | Not started | Route 53 listings before and after | `docs/evidence/` | Records follow the Ingress; ownership TXT present |
-| G04.6 | Working HTTPS at `https://eks.<domain>` or `https://eks.labs.<domain>` | Not started | `curl -v` output and browser screenshot | `docs/evidence/`, `docs/screenshots/app/` | Valid chain, no warnings, app loads |
+| G04.1 | cert-manager installed (pinned chart, via Argo CD) with Let's Encrypt staging and production ClusterIssuers; staging tested first | In progress (cert-manager v1.21.2 values and Argo CD Application; staging and production DNS-01 ClusterIssuers; validated locally; not deployed; staging first) | Manifests; issuer status | GitOps directory | Both issuers Ready |
+| G04.2 | Certificate for the hostname issued automatically from the Ingress or Certificate resource by the production issuer | In progress (Ingress TLS switch: secret `finsight-tls`, `cert-manager.io/cluster-issuer`; production issuer selected by value; needs live issuance) | `kubectl get certificate`; certificate details | `docs/evidence/` | Ready=True; issuer is Let's Encrypt; SAN equals the hostname |
+| G04.3 | Automatic renewal configured and demonstrated | In progress (`cert-manager.io/renew-before: 720h` on the Ingress; forced-renewal demonstration needs a live certificate) | `renewBefore` setting; forced renewal output showing a new serial | GitOps directory, `docs/evidence/` | Serial before and after differ; the secret updated without manual edits |
+| G04.4 | ExternalDNS installed with a Pod Identity role allowed to change only the one hosted zone, using a TXT ownership registry | In progress (role, zone- and name-scoped policy and association in Terraform with unit tests, [#6](https://github.com/Fer-as/finsight-eks-data-platform/issues/6); not applied; controller not installed; ExternalDNS values/Application written with matching service account, zone-id and domain filters, TXT registry; record names verified against the IAM policy; not deployed) | Helm values; Terraform role; IAM policy | GitOps directory, `infra/terraform/` | Policy names the single zone; controller logs show the zone filter |
+| G04.5 | DNS records managed dynamically: creating the Ingress creates the A/alias record; changing or removing it updates or removes the record | In progress (ExternalDNS 1.23.0 / v0.23.0 on Ingress status, TXT owner `finsight-dev`; default policy upsert-only creates/updates but does not delete, so the removal test needs `policy: sync`; not deployed) | Route 53 listings before and after | `docs/evidence/` | Records follow the Ingress; ownership TXT present |
+| G04.6 | Working HTTPS at `https://eks.<domain>` or `https://eks.labs.<domain>` | Not started (live only: needs the platform, NGINX, the production image and a production certificate) | `curl -v` output and browser screenshot | `docs/evidence/`, `docs/screenshots/app/` | Valid chain, no warnings, app loads |
 
 ### G05 Monitoring Setup (15 points)
 
@@ -364,7 +364,7 @@ Each screenshot must come from the real deployed environment and be dated in its
 | R6.2 | Database credentials delivered to pods through the documented mechanism and rotatable without rebuilding images | Not started | Manifests and a rotation note | Kubernetes manifests, `docs/` | Rotate once and confirm the app reconnects |
 | R6.3 | TLS certificate issued by cert-manager (Let's Encrypt) and shown Ready | Not started | `kubectl get certificate` | `docs/evidence/`, `docs/screenshots/app/` | Certificate Ready=True; browser shows a valid chain |
 | R6.4 | Ingress routes only the intended hostname and paths, with HTTP redirected to HTTPS; controller choice approved by the assessor | In progress | Ingress manifest, controller values, assessor decision | Kubernetes manifests, `docs/assessment-tracker.md` | `curl -I http://...` redirects; unknown hosts are rejected |
-| R6.5 | ExternalDNS limited to the one hosted zone and owns only its records | Not started | Controller values and IAM policy | Helm values, Terraform | Records carry the ownership TXT record; IAM policy names a single zone |
+| R6.5 | ExternalDNS limited to the one hosted zone and owns only its records | In progress (zone-id and domain filters, TXT owner ID, name-scoped IAM policy; verified offline; not deployed) | Controller values and IAM policy | Helm values, Terraform | Records carry the ownership TXT record; IAM policy names a single zone |
 | R6.6 | Workloads that call AWS use EKS Pod Identity with one role per service account; no node-role permissions used by apps | Not started (Terraform for CNI, EBS CSI and ETL roles exists; not yet deployed) | Pod Identity associations and a test pod | `infra/terraform/modules/eks`, `environments/dev/platform` | From the ETL pod, `aws sts get-caller-identity` shows the ETL role; access outside raw/ and curated/ is denied |
 
 ### 4.7 Efficient CI/CD

@@ -1,0 +1,29 @@
+# Argo CD Application for ExternalDNS (G04). Not applied yet: Argo CD is installed later (G05).
+# Replace the zone placeholder with config dns.zone_id before applying.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: external-dns
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: external-dns
+  sources:
+    - repoURL: https://kubernetes-sigs.github.io/external-dns/
+      chart: external-dns
+      targetRevision: 1.23.0
+      helm:
+        releaseName: external-dns
+        valueFiles:
+          - $values/gitops/platform/external-dns/values.yaml
+        parameters:
+          - name: extraArgs.zone-id-filter
+            value: REPLACE_WITH_HOSTED_ZONE_ID
+    - repoURL: https://github.com/Fer-as/finsight-eks-data-platform.git
+      targetRevision: main
+      ref: values
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

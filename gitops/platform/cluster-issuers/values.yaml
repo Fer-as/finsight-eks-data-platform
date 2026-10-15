@@ -1,0 +1,10 @@
+# Requires the cert-manager CRDs (install cert-manager first).
+# hostedZoneID is set at install time (config dns.zone_id). The cert-manager role cannot discover
+# zones (no ListHostedZonesByName), and may change only _acme-challenge.<hostname> TXT records.
+route53:
+  region: eu-west-2
+  hostedZoneID: ""
+# Only certificates for this name may use these issuers (matches the IAM record-name condition).
+hostname: eks.feras-dev.co.uk
+# Optional ACME account contact; left empty so no personal address is committed.
+email: ""

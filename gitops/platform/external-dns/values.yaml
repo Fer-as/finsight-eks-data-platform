@@ -1,0 +1,46 @@
+# ExternalDNS v0.23.0 (chart external-dns 1.23.0 from https://kubernetes-sigs.github.io/external-dns/).
+# v0.23.0 is the version whose TXT naming the Route 53 IAM policy was written against
+# (modules/dns-policies): it may change only eks.feras-dev.co.uk (A/AAAA alias) and its ownership
+# TXT records a-eks.feras-dev.co.uk and aaaa-eks.feras-dev.co.uk. Do not set txtPrefix/txtSuffix
+# or add hostnames without changing that module first. See docs/infrastructure/dns-and-certificates.md.
+image:
+  tag: v0.23.0
+
+# Service account external-dns in namespace external-dns: matches the Terraform Pod Identity
+# association (module external_dns_role). No IRSA annotation.
+serviceAccount:
+  create: true
+  name: external-dns
+
+provider:
+  name: aws
+env:
+  - name: AWS_REGION
+    value: eu-west-2
+
+# Only Ingress hostnames; the target is the NLB hostname that F5 NGINX publishes in Ingress status.
+sources:
+  - ingress
+# Creates and updates, never deletes (owner instruction). The TXT owner ID marks FinSight's records.
+# G04.5 also asks for removal when the Ingress is deleted: that needs policy: sync, which the TXT
+# owner ID and the name-scoped IAM policy keep limited to FinSight's own records.
+policy: upsert-only
+registry: txt
+txtOwnerId: finsight-dev
+domainFilters:
+  - eks.feras-dev.co.uk
+# A/AAAA alias only: a CNAME (and its cname- TXT) would be denied by IAM.
+managedRecordTypes:
+  - A
+  - AAAA
+# zone-id-filter is added at install time (config dns.zone_id).
+extraArgs:
+  aws-zone-type: public
+
+interval: 1m
+resources:
+  requests:
+    cpu: 20m
+    memory: 64Mi
+  limits:
+    memory: 128Mi

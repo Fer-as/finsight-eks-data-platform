@@ -1,0 +1,32 @@
+# Argo CD Application for the F5 NGINX Ingress Controller (G03.1). Not applied yet: Argo CD
+# itself is installed later (G05). Before applying, replace the security group placeholder with
+# the platform output network.public_ingress_security_group_id (it changes when the network is
+# recreated). The Service must never be created without it.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nginx-ingress
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nginx-ingress
+  sources:
+    - repoURL: ghcr.io/nginx/charts
+      chart: nginx-ingress
+      targetRevision: 2.7.3
+      helm:
+        releaseName: nginx-ingress
+        valueFiles:
+          - $values/gitops/platform/nginx-ingress/values.yaml
+        parameters:
+          - name: controller.service.annotations.service\.beta\.kubernetes\.io/aws-load-balancer-security-groups
+            value: REPLACE_WITH_PUBLIC_INGRESS_SECURITY_GROUP_ID
+            forceString: true
+    - repoURL: https://github.com/Fer-as/finsight-eks-data-platform.git
+      targetRevision: main
+      ref: values
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

@@ -46,8 +46,10 @@ ExternalDNS must run with settings that stay inside the role's limits:
 - `--domain-filter=<hostname>` and `--zone-id-filter=<zone id>`
 - the default TXT naming (no `--txt-prefix` or `--txt-suffix`): the ownership records are
   `a-<hostname>` and `aaaa-<hostname>`
-- `--policy=sync`, so that removing the Ingress also removes the records; the TXT owner ID
-  stops it deleting records it did not create
+- `--policy=upsert-only` (owner decision, 15 October 2026): records are created and updated,
+  never deleted. G04.5's removal step needs `policy: sync` for the evidence window. The TXT owner ID
+  and this role still limit it to FinSight's own records.
+- `--managed-record-types=A,AAAA`: a CNAME (and its `cname-` TXT) would be denied by IAM
 - service account `external-dns` in namespace `external-dns`, with no IRSA annotation
 
 A different TXT prefix or extra hostnames will be denied by IAM; change the module and its
@@ -91,3 +93,68 @@ upgrading.
   must use exactly the namespaces and service accounts above.
 - **Apply.** These roles are created with the platform root. The expected platform plan grows
   by 6 resources (two roles, two inline policies, two associations).
+
+## Implementation (G04, issues #21 and #22)
+
+Status, 15 October 2026: **implemented locally and validated offline; not deployed.**
+
+| Component | Pin | Files |
+|---|---|---|
+| cert-manager | chart and app **v1.21.2** (`https://charts.jetstack.io`). The 1.21 line is the only supported release covering Kubernetes 1.33–1.36 | `gitops/platform/cert-manager/` (values, Argo CD Application). CRDs come from the chart (`crds.enabled`, `keep`) |
+| ClusterIssuers | `letsencrypt-staging` and `letsencrypt-production`, Route 53 DNS-01, `region: eu-west-2`, explicit `hostedZoneID`, solver limited to `eks.feras-dev.co.uk` | `gitops/platform/cluster-issuers/` (small chart). It refuses to render without a valid zone ID or hostname |
+| ExternalDNS | chart **1.23.0**, image **v0.23.0** (`https://kubernetes-sigs.github.io/external-dns/`) | `gitops/platform/external-dns/` (values, Argo CD Application) |
+| Ingress TLS | `gitops/apps/finsight`: `ingress.tls.enabled=true` adds the TLS block for the host with secret `finsight-tls`, plus `cert-manager.io/cluster-issuer` (staging by default) and `cert-manager.io/renew-before: 720h` | Switched with values only; no template edits |
+
+**Identity and permissions.** The service accounts match the Terraform Pod Identity
+associations:
+- `cert-manager/cert-manager`
+- `external-dns/external-dns`
+
+There are no IRSA annotations, no access keys and no `role` in the issuers.
+
+**Record names** were checked against the v0.23.0 source (`registry/mapper` `ToTXTName`) and
+against the `dns-policies` module rendered for this hostname.
+- **ExternalDNS writes** `eks.feras-dev.co.uk` (A or AAAA alias) and `a-` / `aaaa-eks.feras-dev.co.uk`
+  (TXT). These are exactly the names the role allows, and nothing more.
+- **cert-manager writes** only `_acme-challenge.eks.feras-dev.co.uk` (TXT), which is its role's
+  only name.
+- **Domain filter.** `--domain-filter=eks.feras-dev.co.uk` keeps the parent zone through
+  `MatchParent`, and the registry, not the plan filter, handles the ownership TXT records.
+
+**Install order** (after the platform, the AWS Load Balancer Controller and NGINX; the zone ID
+comes from the private config's `dns.zone_id`):
+
+```powershell
+helm repo add jetstack https://charts.jetstack.io; helm repo add external-dns https://kubernetes-sigs.github.io/external-dns/; helm repo update
+helm upgrade --install cert-manager jetstack/cert-manager --version v1.21.2 -n cert-manager --create-namespace -f gitops/platform/cert-manager/values.yaml
+helm upgrade --install cluster-issuers gitops/platform/cluster-issuers -n cert-manager --set route53.hostedZoneID=<zone id>
+helm upgrade --install external-dns external-dns/external-dns --version 1.23.0 -n external-dns --create-namespace -f gitops/platform/external-dns/values.yaml --set-string extraArgs.zone-id-filter=<zone id>
+helm upgrade --install finsight gitops/apps/finsight -n finsight --reuse-values --set ingress.tls.enabled=true                 # staging first
+helm upgrade --install finsight gitops/apps/finsight -n finsight --reuse-values --set ingress.tls.clusterIssuer=letsencrypt-production   # after staging succeeds
+```
+
+**Live evidence needed for full marks** (nothing here can be proven offline):
+1. `kubectl -n cert-manager get pods` all Running, and `kubectl get clusterissuer` shows both
+   issuers Ready.
+2. With the staging issuer, the `challenge` and `order` reach `valid`.
+   `kubectl -n cert-manager logs deploy/cert-manager` shows Route 53 propagation with no
+   `AccessDenied`.
+3. With the production issuer:
+   - `kubectl -n finsight get certificate finsight-tls` shows Ready=True
+   - `kubectl describe certificate` shows the issuer is Let's Encrypt and the SAN is
+     `eks.feras-dev.co.uk`
+4. **Renewal (G04.3):** run `cmctl renew finsight-tls -n finsight`, and show that the serial
+   changes and the secret updates.
+5. **ExternalDNS logs** show only the A (or AAAA) alias and `a-` / `aaaa-` TXT changes for the
+   host, with no `AccessDenied`.
+   `aws route53 list-resource-record-sets` shows the alias pointing to the NLB, and the owner TXT
+   `"heritage=external-dns,external-dns/owner=finsight-dev"`.
+6. **Record lifecycle (G04.5):** changing the Ingress updates the record. Deleting it removes
+   the record **only if `policy=sync`** for that test. Switch with a values-only change, then
+   switch back:
+
+   ```powershell
+   helm upgrade external-dns external-dns/external-dns --version 1.23.0 -n external-dns --reuse-values --set policy=sync
+   ```
+7. `curl -v https://eks.feras-dev.co.uk/` shows a trusted chain with no warnings and HTTP 200,
+   and `http://` returns a 301 to `https://`. Take a browser screenshot.
