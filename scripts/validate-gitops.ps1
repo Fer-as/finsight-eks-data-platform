@@ -36,6 +36,7 @@ $sample = @{
     PublicIngressSecurityGroupId = "sg-0123456789abcdef0"
     ApiRepositoryUrl = "000000000000.dkr.ecr.eu-west-2.amazonaws.com/finsight-dev/api"
     FrontendRepositoryUrl = "000000000000.dkr.ecr.eu-west-2.amazonaws.com/finsight-dev/frontend"
+    EtlRepositoryUrl = "000000000000.dkr.ecr.eu-west-2.amazonaws.com/finsight-dev/etl"
 }
 $renderer = Join-Path $PSScriptRoot "render-argocd-root.ps1"
 $rendered = Join-Path $cache "root-application.yaml"
@@ -52,10 +53,13 @@ foreach ($refusal in $refusals) {
     try { & $renderer @values -OutFile (Join-Path $cache "refused.yaml") -AllowMissingImages | Out-Null } catch { $refused = $true }
     if (-not $refused) { throw "The renderer accepted an invalid $($refusal.Case)." }
 }
+$emptyTags = Join-Path $cache "image-tags-empty.yaml"
+[IO.File]::WriteAllText($emptyTags, ([IO.File]::ReadAllText((Join-Path $repo "gitops/apps/finsight/image-tags.yaml")) -replace '(?m)^(\s+(tag|digest):).*$', '$1 ""'))
 $refused = $false
-try { & $renderer @sample -OutFile (Join-Path $cache "refused.yaml") | Out-Null } catch { $refused = $_.Exception.Message -match "no published" }
+try { & $renderer @sample -OutFile (Join-Path $cache "refused.yaml") -ImageTagsFile $emptyTags | Out-Null } catch { $refused = $_.Exception.Message -match "no published" }
+& $renderer @sample -OutFile (Join-Path $cache "published.yaml") | Out-Null
 if (-not $refused) { throw "The renderer did not refuse an image-tags.yaml without published digests." }
-Write-Host "Renderer: sample rendered; 4 invalid inputs refused."
+Write-Host "Renderer: sample rendered; committed digests accepted; 4 invalid inputs refused."
 
 $command = "pip install --quiet --disable-pip-version-check --root-user-action=ignore pytest==9.1.1 PyYAML==6.0.3 " +
     "&& PATH=/cache/bin:`$PATH python -m pytest -q -p no:cacheprovider tests/gitops"

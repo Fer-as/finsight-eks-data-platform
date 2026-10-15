@@ -41,6 +41,7 @@ SAMPLE = {
     "__PUBLIC_INGRESS_SECURITY_GROUP_ID__": "sg-0123456789abcdef0",
     "__API_REPOSITORY_URL__": f"{SAMPLE_REGISTRY}/finsight-dev/api",
     "__FRONTEND_REPOSITORY_URL__": f"{SAMPLE_REGISTRY}/finsight-dev/frontend",
+    "__ETL_REPOSITORY_URL__": f"{SAMPLE_REGISTRY}/finsight-dev/etl",
 }
 DIGEST = "sha256:" + "a" * 64
 # Must be applied (and Healthy) before: the key's Application.
@@ -317,6 +318,7 @@ def test_root_build_injects_every_value(built):
     assert params["finsight"] == {
         "api.image.repository": SAMPLE["__API_REPOSITORY_URL__"],
         "frontend.image.repository": SAMPLE["__FRONTEND_REPOSITORY_URL__"],
+        "etl.image.repository": SAMPLE["__ETL_REPOSITORY_URL__"],
     }
 
 
@@ -384,10 +386,32 @@ def test_finsight_consumes_image_tags_after_values(built, tmp_path):
     assert all(d["metadata"]["namespace"] == "finsight" for d in deployments.values())
 
 
-def test_finsight_does_not_render_before_images_are_published(built):
-    # The committed file is empty until the pipeline's first image pull request is merged.
+def test_finsight_does_not_render_without_published_images(built, tmp_path):
+    # Before the pipeline's first image pull request, image-tags.yaml has no tags or digests.
+    tags = load(GITOPS / "apps" / "finsight" / "image-tags.yaml")
+    for component in tags.values():
+        component["image"] = {"tag": "", "digest": ""}
+    empty = tmp_path / "image-tags.yaml"
+    empty.write_text(yaml.safe_dump(tags), encoding="utf-8")
     with pytest.raises(AssertionError, match="image.tag or image.digest is required"):
-        render(built["finsight"])
+        render(built["finsight"], {"image-tags.yaml": empty})
+
+
+def test_committed_image_tags_are_published_digests(built):
+    tags = load(GITOPS / "apps" / "finsight" / "image-tags.yaml")
+    for component in ("api", "frontend", "etl"):
+        image = tags[component]["image"]
+        assert re.fullmatch(r"[0-9a-f]{40}", image["tag"]), component
+        assert re.fullmatch(r"sha256:[0-9a-f]{64}", image["digest"]), component
+    images = {
+        c["image"]
+        for d in load_all(render(built["finsight"]))
+        if d["kind"] in ("Deployment", "Job")
+        for c in d["spec"]["template"]["spec"]["containers"]
+    }
+    for component in ("api", "frontend", "etl"):
+        repository = SAMPLE[f"__{component.upper()}_REPOSITORY_URL__"]
+        assert f"{repository}@{tags[component]['image']['digest']}" in images, component
 
 
 def test_pipeline_writes_the_file_argocd_reads_and_never_deploys():

@@ -7,6 +7,8 @@ metadata:
     app.kubernetes.io/name: finsight-api
     {{- include "finsight.labels" . | nindent 4 }}
   annotations:
+    # After PostgreSQL (wave -1) and the database init Job (wave 0) when database.enabled.
+    argocd.argoproj.io/sync-wave: "1"
     checkov.io/skip1: CKV_K8S_35=libpq reads PG* environment variables; secret-file delivery needs an application change (R5 hardening)
     checkov.io/skip2: CKV2_K8S_6=VPC CNI network-policy enforcement is not enabled in this cluster yet (R5 hardening, #17)
 spec:
@@ -32,6 +34,14 @@ spec:
           envFrom:
             - secretRef:
                 name: {{ required "api.databaseSecretName is required" .Values.api.databaseSecretName }}
+          {{- if .Values.database.enabled }}
+          # The in-cluster database Service; overrides any PGHOST/PGPORT in the Secret.
+          env:
+            - name: PGHOST
+              value: finsight-postgres
+            - name: PGPORT
+              value: "5432"
+          {{- end }}
           readinessProbe:
             httpGet:
               path: /api/health/ready

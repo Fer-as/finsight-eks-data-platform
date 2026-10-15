@@ -80,12 +80,16 @@ spec:
               value:
                 - {name: api.image.repository, value: REPLACE_WITH_API_REPOSITORY_URL}
                 - {name: frontend.image.repository, value: REPLACE_WITH_FRONTEND_REPOSITORY_URL}
+                - {name: etl.image.repository, value: REPLACE_WITH_ETL_REPOSITORY_URL}
             - op: replace
               path: /spec/source/helm/parameters/0/value
               value: "__API_REPOSITORY_URL__"
             - op: replace
               path: /spec/source/helm/parameters/1/value
               value: "__FRONTEND_REPOSITORY_URL__"
+            - op: replace
+              path: /spec/source/helm/parameters/2/value
+              value: "__ETL_REPOSITORY_URL__"
   syncPolicy:
     automated:
       # A child Application removed from gitops/kustomization.yaml is deleted (its workloads stay).
