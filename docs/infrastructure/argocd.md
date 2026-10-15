@@ -49,14 +49,14 @@ merely applied.
 | 1 | monitoring (G05) | cert-manager, which issues the operator webhook certificate. Its CRDs (ServiceMonitor, PrometheusRule) must exist before NGINX and FinSight create theirs. Needs the `grafana-admin` Secret; see [monitoring.md](monitoring.md) |
 | 2 | nginx-ingress | The load balancer controller, so the NLB is created by it with the Terraform security group. The Service is Healthy only once the NLB has an address |
 | 3 | external-dns | NGINX has published the NLB address in Ingress status |
-| 4 | finsight | Everything above. Also needs published images and the `finsight-database` Secret |
+| 4 | finsight | Everything above. Needs the `finsight-database` Secret. Inside the Application: StorageClass (wave -2), PostgreSQL StatefulSet and Service (-1), database init Job as a Sync hook (0), API (1); see "In-cluster database" below |
 
 **Account-specific values are never committed.** The children keep their `REPLACE_WITH_*`
 placeholders. The root Application holds Kustomize JSON patches that replace them in the cluster:
 - the VPC ID
 - the hosted zone ID, used twice
 - the public ingress security group
-- the two ECR repository URLs
+- the three ECR repository URLs (api, frontend, etl)
 
 Each patch first `test`s the parameter's name and placeholder. If a child file is edited so the
 patch would hit the wrong field, the build fails rather than misconfigures. The renderer checks
@@ -104,9 +104,9 @@ merge does not trigger another build and publish.
 - The platform is applied (EKS 1.36, m7i-flex.large workers) and `kubectl` points at
   `finsight-dev`.
 - The Pod Identity associations exist (Terraform).
-- At least one image pull request from the pipeline has been merged, so `image-tags.yaml` has
-  digests. The renderer refuses to continue otherwise: FinSight cannot render, and an unrenderable
-  final wave keeps the root sync waiting.
+- `image-tags.yaml` on `main` has published digests for api, frontend and etl (true since PR #46).
+  The renderer refuses to continue otherwise: FinSight cannot render, and an unrenderable final
+  wave keeps the root sync waiting.
 
 **Bootstrap safety (TLS and DNS).**
 - FinSight starts with `ingress.tls.enabled: false`. Once it is enabled, the first certificate uses
@@ -116,15 +116,31 @@ merge does not trigger another build and publish.
 
 **Steps**
 
-1. **Secrets.** Create the Grafana admin Secret as in [monitoring.md](monitoring.md) step 1. Then create the database Secret outside Git (values from the database task; never committed or
-   printed):
+1. **Secrets** (before step 5; never in Git). With `kubectl` pointing at the cluster, from the
+   repository root in Windows PowerShell:
 
-   ```sh
-   kubectl create namespace finsight
-   kubectl -n finsight create secret generic finsight-database \
-     --from-literal=PGHOST=... --from-literal=PGPORT=5432 --from-literal=PGDATABASE=... \
-     --from-literal=PGUSER=... --from-literal=PGPASSWORD=...
+   ```powershell
+   .\scripts\new-cluster-secrets.ps1
    ```
+
+   It creates the namespaces if needed, then asks twice (hidden) for each password. Take both from
+   the password manager, at least 16 characters; the script never generates, prints or stores them.
+
+   | Secret | Namespace | Keys | Used by |
+   |---|---|---|---|
+   | `finsight-database` | `finsight` | `PGDATABASE` (default `finsight`), `PGUSER` (default `finsight`), `PGPASSWORD` | PostgreSQL (initial database and user), the init Job and the API. `PGHOST`/`PGPORT` are set by the chart |
+   | `grafana-admin` | `monitoring` | `admin-user` (default `finsight-admin`), `admin-password` | Grafana |
+
+   Each Secret goes to `kubectl create -f -` on standard input, so no credential appears in a
+   command line, a file or the `last-applied` annotation. It refuses to overwrite an existing
+   Secret. Missing Secrets block their waves: PostgreSQL cannot start (FinSight stays Progressing),
+   and neither can Grafana (monitoring, wave 1, never becomes Healthy).
+
+   Check with `kubectl -n finsight get secret finsight-database` and
+   `kubectl -n monitoring get secret grafana-admin`. The PostgreSQL password only takes effect
+   when the database volume is first initialised. To change it later, recreate the volume
+   (delete the `finsight` Application with `--cascade` and let Argo CD resync), or use
+   `ALTER ROLE` inside the database.
 
 2. **Install Argo CD** from the repository root:
 
@@ -162,7 +178,7 @@ merge does not trigger another build and publish.
    $zone = (Get-Content -Raw infra/terraform/config/local.json | ConvertFrom-Json).dns.zone_id
    .\scripts\render-argocd-root.ps1 -VpcId $network.vpc_id -HostedZoneId $zone `
      -PublicIngressSecurityGroupId $network.public_ingress_security_group_id `
-     -ApiRepositoryUrl $repos.api -FrontendRepositoryUrl $repos.frontend
+     -ApiRepositoryUrl $repos.api -FrontendRepositoryUrl $repos.frontend -EtlRepositoryUrl $repos.etl
    kubectl apply -f .cache/argocd/root-application.yaml
    ```
 
@@ -189,9 +205,45 @@ merge does not trigger another build and publish.
 | History and rollback | `argocd app history finsight` lists each deployed revision. Roll back with `git revert` of the change (for example the image PR) and merge; Argo CD syncs the earlier state. `argocd app rollback` is refused while automated sync is on, and the root would restore the child's policy, so Git is the rollback path | History output; revert PR |
 | G07.6 | Merge the pipeline's image PR. The running pod's image digest equals the ECR digest: `kubectl -n finsight get pod -l app.kubernetes.io/name=finsight-api -o jsonpath='{.items[0].status.containerStatuses[0].imageID}'` | Screenshot |
 
+## In-cluster database
+
+PostgreSQL 17 runs inside the `finsight` Application (`gitops/apps/finsight/templates/database.yaml`).
+There is no RDS and no operator.
+
+- **Storage.** StatefulSet `finsight-postgres` has one replica. It uses a 5 GiB encrypted gp3 volume
+  from StorageClass `finsight-gp3` (`ebs.csi.aws.com`, `WaitForFirstConsumer`). The EBS CSI add-on
+  already has its Pod Identity role.
+- **Image and security.** The image is `postgres:17-alpine`, pinned to the same digest as CI. It runs
+  as UID 10070 with a read-only root filesystem and all capabilities dropped. Data is in
+  `PGDATA=/var/lib/postgresql/data/pgdata`.
+- **Access.** It is reachable only through the ClusterIP Service `finsight-postgres:5432`. The Ingress
+  never routes to it.
+- **Initialisation.** Job `finsight-db-init` uses the published ETL image (`etl` digest in
+  `image-tags.yaml`). It runs `scripts/migrate.py`, then the deterministic synthetic generator, then
+  the ETL load.
+  - It is an Argo CD Sync hook in wave 0, so it runs after PostgreSQL is Ready (wave -1) and before
+    the API (wave 1).
+  - It re-runs on every sync. That is safe: migrations are checksummed and skipped once applied, and
+    the ETL replaces the curated snapshot in one transaction.
+- **Ordering and outages.** The API starts only after the Job has succeeded. Its readiness probe
+  (`/api/health/ready`) checks the database on every probe.
+- **Single replica.** The volume is zonal, so a pod moved to the other AZ cannot attach it until the
+  node in its original AZ returns. This is an assessment compromise, not HA.
+- **Teardown.** `persistentVolumeClaimRetentionPolicy.whenDeleted: Delete` with `reclaimPolicy: Delete`:
+  `argocd app delete finsight --cascade` removes the claim and the EBS volume. Confirm that
+  `kubectl get pv` shows nothing left before `terraform destroy`.
+- **Not implemented.** There is no backup before teardown (F6). The data is synthetic and
+  reproducible.
+
+Verified locally with Docker, with the same security settings:
+- PostgreSQL initialises and restarts on its existing data.
+- The init command, run twice: migration applied, then skipped; 10,000 transactions both times;
+  2 successful pipeline runs.
+- The API returns `/api/health/ready`, `/api/departments` and `/api/dashboard` (`has_data: true`).
+
 ## Local validation (15 October 2026)
 
-`scripts/validate-gitops.ps1` passed: 27 tests for G08, 41 since G05 added its monitoring tests. It runs pytest in the pinned Python 3.12 image with
+`scripts/validate-gitops.ps1` passed: 27 tests for G08, 41 after G05, 50 with the in-cluster database tests. It runs pytest in the pinned Python 3.12 image with
 helm 3.22.0, kustomize 5.8.1 and kubeconform 0.8.0. Kubernetes 1.36.0 schemas are used, plus the
 CRDs catalog for Argo CD, cert-manager and load balancer controller resources; missing schemas fail.
 

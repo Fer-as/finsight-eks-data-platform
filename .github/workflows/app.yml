@@ -145,6 +145,7 @@ jobs:
             helm template finsight gitops/apps/finsight -n finsight --kube-version 1.36.0 \
               --set api.image.repository=registry.invalid/api --set api.image.digest=$digest \
               --set frontend.image.repository=registry.invalid/frontend --set frontend.image.digest=$digest \
+              --set etl.image.repository=registry.invalid/etl --set etl.image.digest=$digest \
               --set ingress.tls.enabled=true > /out/finsight.yaml &&
             helm template cluster-issuers gitops/platform/cluster-issuers -n cert-manager --kube-version 1.36.0 \
               --set route53.hostedZoneID=Z0000000000000000000 > /out/cluster-issuers.yaml"

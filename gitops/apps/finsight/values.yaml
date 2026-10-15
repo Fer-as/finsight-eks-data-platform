@@ -39,6 +39,44 @@ frontend:
       cpu: 200m
       memory: 128Mi
 
+# One-shot database initialisation (migrations, deterministic synthetic data, ETL) using the
+# published ETL image. Runs as an Argo CD Sync hook after PostgreSQL is Ready and before the API.
+etl:
+  image:
+    repository: ""
+    tag: ""
+    digest: ""
+  runAsUser: 10001
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# PostgreSQL 17 inside the cluster: one replica on an encrypted gp3 EBS volume (EBS CSI driver),
+# reachable only through the ClusterIP Service finsight-postgres. Credentials come from the same
+# Secret as the API (api.databaseSecretName: PGDATABASE, PGUSER, PGPASSWORD); the chart sets
+# PGHOST/PGPORT itself. Single replica and zonal volume: an assessment compromise, not HA.
+database:
+  enabled: true
+  # Same image and digest as the CI integration-test service (.github/workflows/app.yml).
+  image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+  # Arbitrary high UID (the image supports any UID with a writable data directory; tested with
+  # a read-only root filesystem and an fsGroup-owned volume, including a restart on existing data).
+  runAsUser: 10070
+  storage: 5Gi
+  storageClass:
+    create: true
+    name: finsight-gp3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
 ingress:
   className: nginx
   host: eks.feras-dev.co.uk

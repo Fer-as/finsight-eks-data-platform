@@ -23,7 +23,7 @@ It has three pages; each numbered flow is on its own layer:
 2. **Kubernetes platform**: namespaces, workloads, Services, sync waves and in-cluster flows ([PNG](docs/architecture/finsight-architecture-kubernetes.png)).
 3. **CI/CD, IAM and data**: pipelines, GitHub OIDC roles, ECR, Terraform state and the planned ETL path ([PNG](docs/architecture/finsight-architecture-cicd.png)).
 
-PostgreSQL in EKS, the ETL job and the dev-images publishing path are marked *planned*. Details:
+In-cluster PostgreSQL and its database init Job are implemented but not yet deployed; only the ETL path through S3 raw/curated is marked *planned*. Details:
 [ingress](docs/infrastructure/ingress.md), [DNS and certificates](docs/infrastructure/dns-and-certificates.md),
 [Argo CD](docs/infrastructure/argocd.md), [monitoring](docs/infrastructure/monitoring.md),
 [application pipeline](docs/infrastructure/app-pipeline.md), [Terraform CI](docs/infrastructure/terraform-ci.md).

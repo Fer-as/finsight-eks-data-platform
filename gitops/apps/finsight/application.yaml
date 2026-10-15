@@ -1,4 +1,4 @@
-# Argo CD Application for the FinSight API and frontend (G07.6/G08), managed by the root Application
+# Argo CD Application for the FinSight API, frontend and in-cluster PostgreSQL (G07.6/G08), managed by the root Application
 # (wave 4: after the ingress, certificate and DNS controllers). Value precedence, lowest first:
 # values.yaml, then image-tags.yaml (tag and digest, written only through the pipeline's GitOps pull
 # request), then the parameters below. Merging an image pull request to main is the deployment; CI
@@ -30,6 +30,8 @@ spec:
           value: REPLACE_WITH_API_REPOSITORY_URL
         - name: frontend.image.repository
           value: REPLACE_WITH_FRONTEND_REPOSITORY_URL
+        - name: etl.image.repository
+          value: REPLACE_WITH_ETL_REPOSITORY_URL
   syncPolicy:
     automated:
       prune: true

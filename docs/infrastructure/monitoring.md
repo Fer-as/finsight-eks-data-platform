@@ -80,17 +80,11 @@ than killed, and the requests guarantee scheduling.
 
 ## Deployment and verification (deployment window)
 
-1. **Before the root Application is applied** (alongside `finsight-database` in
-   [argocd.md](argocd.md) step 1), create the Grafana admin Secret. Generate the password locally;
-   it is never printed, committed or saved anywhere except the owner's password manager:
-
-   ```powershell
-   kubectl create namespace monitoring
-   $bytes = New-Object byte[] 24; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
-   $password = [Convert]::ToBase64String($bytes)
-   kubectl -n monitoring create secret generic grafana-admin --from-literal=admin-user=finsight-admin --from-literal=admin-password=$password
-   Set-Clipboard $password; Remove-Variable password, bytes   # paste into the password manager
-   ```
+1. **Before the root Application is applied**, create Secret `monitoring/grafana-admin` (keys
+   `admin-user`, `admin-password`) together with `finsight/finsight-database`. Use
+   `.\scripts\new-cluster-secrets.ps1`, as in [argocd.md](argocd.md) step 1. It prompts for the
+   password (hidden, from the password manager) and never generates, prints or passes it on a
+   command line.
 
    If the Secret is missing, Grafana cannot start and wave 1 never becomes Healthy.
 

@@ -1,0 +1,188 @@
+{{- if .Values.database.enabled }}
+{{- $secret := required "api.databaseSecretName is required" .Values.api.databaseSecretName }}
+{{- if .Values.database.storageClass.create }}
+# Encrypted gp3 volumes through the EBS CSI add-on. WaitForFirstConsumer creates the volume in the
+# AZ where the pod is scheduled. Delete: the data is reseeded deterministically by the init Job.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ .Values.database.storageClass.name }}
+  labels:
+    {{- include "finsight.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  encrypted: "true"
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+---
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: finsight-postgres
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: finsight-postgres
+    {{- include "finsight.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: finsight-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: finsight-postgres
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: finsight-postgres
+    {{- include "finsight.labels" . | nindent 4 }}
+  annotations:
+    # Argo CD waits for this wave to be Ready before the init Job (wave 0) and the API (wave 1).
+    argocd.argoproj.io/sync-wave: "-1"
+    checkov.io/skip1: CKV_K8S_35=The postgres image reads POSTGRES_* environment variables; secret files need an image change (R5 hardening)
+    checkov.io/skip2: CKV2_K8S_6=VPC CNI network-policy enforcement is not enabled in this cluster yet (R5 hardening, #17)
+spec:
+  serviceName: finsight-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: finsight-postgres
+  # Deleting the StatefulSet (application teardown) also deletes the volume.
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Delete
+    whenScaled: Retain
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: finsight-postgres
+        {{- include "finsight.labels" . | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      {{- include "finsight.podSecurity" .Values.database | nindent 6 }}
+      containers:
+        - name: postgres
+          image: {{ .Values.database.image | quote }}
+          imagePullPolicy: Always
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secret }}
+                  key: PGDATABASE
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secret }}
+                  key: PGUSER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secret }}
+                  key: PGPASSWORD
+            # Subdirectory: the volume root contains lost+found.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -h 127.0.0.1 -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -h 127.0.0.1 -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            {{- toYaml .Values.database.resources | nindent 12 }}
+          {{- include "finsight.containerSecurity" . | nindent 10 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: run
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.database.storageClass.name }}
+        resources:
+          requests:
+            storage: {{ .Values.database.storage }}
+---
+# Migrations, deterministic synthetic data and the ETL load, all idempotent: re-running reloads the
+# same snapshot in one transaction. As an Argo CD Sync hook it runs on every sync after PostgreSQL
+# is Ready (wave -1) and before the API (wave 1); the previous Job is deleted first.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: finsight-db-init
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: finsight-db-init
+    {{- include "finsight.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "0"
+    checkov.io/skip1: CKV_K8S_35=libpq reads PG* environment variables; secret-file delivery needs an application change (R5 hardening)
+    checkov.io/skip2: CKV2_K8S_6=VPC CNI network-policy enforcement is not enabled in this cluster yet (R5 hardening, #17)
+spec:
+  backoffLimit: 4
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: finsight-db-init
+        {{- include "finsight.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      {{- include "finsight.podSecurity" .Values.etl | nindent 6 }}
+      containers:
+        - name: db-init
+          image: {{ include "finsight.image" .Values.etl.image | quote }}
+          imagePullPolicy: Always
+          command: ["sh", "-c", "python scripts/migrate.py && python -m finsight_pipelines.synthetic && python -m finsight_pipelines.etl"]
+          envFrom:
+            - secretRef:
+                name: {{ $secret }}
+          env:
+            - name: PGHOST
+              value: finsight-postgres
+            - name: PGPORT
+              value: "5432"
+          resources:
+            {{- toYaml .Values.etl.resources | nindent 12 }}
+          {{- include "finsight.containerSecurity" . | nindent 10 }}
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+{{- end }}

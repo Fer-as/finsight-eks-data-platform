@@ -8,7 +8,10 @@ param(
     [Parameter(Mandatory = $true)][string]$PublicIngressSecurityGroupId,
     [Parameter(Mandatory = $true)][string]$ApiRepositoryUrl,
     [Parameter(Mandatory = $true)][string]$FrontendRepositoryUrl,
+    [Parameter(Mandatory = $true)][string]$EtlRepositoryUrl,
     [string]$OutFile,
+    # The image versions to check; defaults to the committed gitops/apps/finsight/image-tags.yaml.
+    [string]$ImageTagsFile,
     # Only for local validation: render although image-tags.yaml has no published digests yet.
     [switch]$AllowMissingImages
 )
@@ -22,7 +25,8 @@ $checks = @(
     @{ Name = "HostedZoneId"; Value = $HostedZoneId; Pattern = '^Z[A-Z0-9]{1,32}$' },
     @{ Name = "PublicIngressSecurityGroupId"; Value = $PublicIngressSecurityGroupId; Pattern = '^sg-[0-9a-f]{8,17}$' },
     @{ Name = "ApiRepositoryUrl"; Value = $ApiRepositoryUrl; Pattern = ($ecr + 'api$') },
-    @{ Name = "FrontendRepositoryUrl"; Value = $FrontendRepositoryUrl; Pattern = ($ecr + 'frontend$') }
+    @{ Name = "FrontendRepositoryUrl"; Value = $FrontendRepositoryUrl; Pattern = ($ecr + 'frontend$') },
+    @{ Name = "EtlRepositoryUrl"; Value = $EtlRepositoryUrl; Pattern = ($ecr + 'etl$') }
 )
 foreach ($check in $checks) {
     if ($check.Value -cnotmatch $check.Pattern) { throw "$($check.Name) does not have the expected format." }
@@ -30,14 +34,15 @@ foreach ($check in $checks) {
 
 # FinSight cannot render until the pipeline has merged published digests, and an unrenderable
 # last wave keeps the root sync waiting. Refuse unless explicitly validating locally.
-$tags = [IO.File]::ReadAllLines((Join-Path $repo "gitops/apps/finsight/image-tags.yaml"))
+if (-not $ImageTagsFile) { $ImageTagsFile = Join-Path $repo "gitops/apps/finsight/image-tags.yaml" }
+$tags = [IO.File]::ReadAllLines($ImageTagsFile)
 $component = $null
 $digests = @{}
 foreach ($line in $tags) {
     if ($line -match '^([a-z]+):\s*$') { $component = $Matches[1] }
     elseif ($component -and $line -match '^\s+digest:\s*"?([^"\s]*)"?\s*$') { $digests[$component] = $Matches[1] }
 }
-foreach ($name in "api", "frontend") {
+foreach ($name in "api", "frontend", "etl") {
     if ($digests[$name] -notmatch '^sha256:[0-9a-f]{64}$' -and -not $AllowMissingImages) {
         throw "gitops/apps/finsight/image-tags.yaml has no published $name digest. Merge the pipeline's image pull request first."
     }
@@ -50,6 +55,7 @@ $tokens = @{
     "__PUBLIC_INGRESS_SECURITY_GROUP_ID__" = $PublicIngressSecurityGroupId
     "__API_REPOSITORY_URL__" = $ApiRepositoryUrl
     "__FRONTEND_REPOSITORY_URL__" = $FrontendRepositoryUrl
+    "__ETL_REPOSITORY_URL__" = $EtlRepositoryUrl
 }
 foreach ($token in $tokens.Keys) {
     if (-not $text.Contains($token)) { throw "Token $token is missing from root-application.yaml." }
