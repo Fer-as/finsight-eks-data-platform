@@ -4,13 +4,13 @@
 # change. Do not edit by hand. The ETL image is published too; the chart does not deploy it yet.
 api:
   image:
-    tag: ""
-    digest: ""
+    tag: "6e77c47fcf6d41ff029361ccf8e15e71ad4b1574"
+    digest: "sha256:28c966f0176aaa5844172d8e26ac519b6d5b4e129e01e7542688fa7a4f7b9e85"
 frontend:
   image:
-    tag: ""
-    digest: ""
+    tag: "6e77c47fcf6d41ff029361ccf8e15e71ad4b1574"
+    digest: "sha256:8b215c4444b459c06d60bd5b7984c208762cee74f831f390930f33312aba0c4f"
 etl:
   image:
-    tag: ""
-    digest: ""
+    tag: "6e77c47fcf6d41ff029361ccf8e15e71ad4b1574"
+    digest: "sha256:1e0a32899595831bf90fde505709f9410341804383e84a81397978f394157e5b"
