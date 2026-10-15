@@ -64,8 +64,7 @@ seccomp, and no service-account token. The API probes are `/api/health/ready` an
 
 ## Dependencies (not fabricated)
 
-- **Production frontend image (R5.7).** The frontend Dockerfile has only a development stage.
-  The chart expects an image that serves the built assets on port 8080 as a non-root user.
+- **Production images (G07).** `apps/frontend/Dockerfile` target `production` serves the built assets on 8080 as UID 101, and `apps/api/Dockerfile` target `api` serves on 8000 as UID 10001. The API reads its `PG*` settings from the Secret named by `api.databaseSecretName` (default `finsight-database`), which is created with the database.
 - **Images in ECR.** The image repositories and tags are required values; the chart refuses to
   render without them. Their URLs come from the foundation output `repository_urls`.
 - **AWS Load Balancer Controller.** It must be running before NGINX is installed. Its values

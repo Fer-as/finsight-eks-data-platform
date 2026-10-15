@@ -1,0 +1,16 @@
+# Image versions for the FinSight chart. Written only by the application pipeline
+# (.github/workflows/app.yml) through a pull request after it publishes images to ECR: tag = commit
+# SHA, digest = the pushed manifest digest. Merging that pull request lets Argo CD roll out the
+# change. Do not edit by hand. The ETL image is published too; the chart does not deploy it yet.
+api:
+  image:
+    tag: ""
+    digest: ""
+frontend:
+  image:
+    tag: ""
+    digest: ""
+etl:
+  image:
+    tag: ""
+    digest: ""
