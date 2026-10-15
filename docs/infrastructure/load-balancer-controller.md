@@ -139,7 +139,10 @@ createIngressClassResource: false    # no ALB Ingress in FinSight
 enableServiceMutatorWebhook: false   # only Services that opt in are handled
 ```
 
-Install chart `3.6.0` into `kube-system`, pinned, through Argo CD. With the mutating webhook
+Install chart `3.6.0` into `kube-system`, pinned, through Argo CD: implemented in G08 as
+`gitops/platform/aws-load-balancer-controller` (wave 1, `enableCertManager: true` so the webhook
+certificate is stable under Argo CD, with `vpcId` injected by the root Application; see
+[argocd.md](argocd.md)). With the mutating webhook
 off, the controller handles only Services annotated `aws-load-balancer-type: external`;
 anything else stays with the default cloud provider. Upstream's release notes install CRDs from
 `?ref=master` for upgrades; pin CRDs to `v3.6.0` instead.

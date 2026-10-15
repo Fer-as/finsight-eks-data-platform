@@ -1,0 +1,31 @@
+# AWS Load Balancer Controller v3.6.0 (chart 3.6.0, https://aws.github.io/eks-charts), as decided in
+# docs/infrastructure/load-balancer-controller.md. The IAM role and Pod Identity association
+# (kube-system/aws-load-balancer-controller) are in Terraform. vpcId is supplied by the root
+# Application (platform output load_balancer_controller.vpc_id), not committed.
+clusterName: finsight-dev
+region: eu-west-2
+image:
+  tag: v3.6.0
+serviceAccount:
+  create: true
+  name: aws-load-balancer-controller
+  # No IRSA annotation; the Pod Identity association already exists.
+  annotations: {}
+replicaCount: 2
+podDisruptionBudget:
+  maxUnavailable: 1
+enableBackendSecurityGroup: false
+# No ALB Ingress in FinSight.
+createIngressClassResource: false
+# Only Services that opt in (aws-load-balancer-type: external) are handled.
+enableServiceMutatorWebhook: false
+# Webhook serving certificates from cert-manager instead of certificates generated at render
+# time. Generated certificates change on every Argo CD render, so the webhook Secret and caBundle
+# would be permanently OutOfSync and self-heal would rotate them on each sync.
+enableCertManager: true
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 256Mi

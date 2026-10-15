@@ -88,8 +88,8 @@ upgrading.
   moved to its own issue. Now defined in Terraform from AWS's published v3.6.0 policy, pinned
   and scoped to this cluster, with no Route 53 permissions; see
   [load-balancer-controller.md](load-balancer-controller.md). Not yet applied.
-- **Controllers.** Installing ExternalDNS (#22), cert-manager (#21) and NGINX (#20) through
-  Argo CD is later work. The Pod Identity associations exist before the pods; the controllers
+- **Controllers.** ExternalDNS (#22), cert-manager (#21) and NGINX (#20) are installed by the
+  Argo CD root Application (G08, [argocd.md](argocd.md)), not yet run. The Pod Identity associations exist before the pods; the controllers
   must use exactly the namespaces and service accounts above.
 - **Apply.** These roles are created with the platform root. The expected platform plan grows
   by 6 resources (two roles, two inline policies, two associations).

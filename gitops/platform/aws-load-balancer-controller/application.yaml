@@ -1,0 +1,44 @@
+# Argo CD Application for the AWS Load Balancer Controller (G08, wave 1). It must be running before
+# the NGINX Service (wave 2) exists, so the NLB is created by this controller and not by the legacy
+# in-tree provider. Wave 1 also follows cert-manager (wave 0), which issues its webhook certificate.
+# The VPC placeholder is replaced by the root Application (gitops/argocd/root-application.yaml).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aws-load-balancer-controller
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  sources:
+    - repoURL: https://aws.github.io/eks-charts
+      chart: aws-load-balancer-controller
+      targetRevision: 3.6.0
+      helm:
+        releaseName: aws-load-balancer-controller
+        valueFiles:
+          - $values/gitops/platform/aws-load-balancer-controller/values.yaml
+        parameters:
+          - name: vpcId
+            value: REPLACE_WITH_VPC_ID
+    - repoURL: https://github.com/Fer-as/finsight-eks-data-platform.git
+      targetRevision: main
+      ref: values
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # The chart's CRDs (including the Gateway API ones) exceed the client-side apply annotation limit.
+      - ServerSideApply=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

@@ -1,0 +1,115 @@
+# Argo CD (G08) for the chart argo-cd 10.9.7 (Argo CD v3.5.4) from https://argoproj.github.io/argo-helm.
+# Argo CD 3.5 is tested on Kubernetes 1.33-1.36. v3.5.4 is the first 3.5 release with the October
+# 2026 security fixes (Kustomize/Helm repo-server command execution, among others); 3.5.3 is not
+# acceptable even though it is older. Installed once with Helm (docs/infrastructure/argocd.md);
+# after that, Argo CD manages everything else from gitops/ and does not manage itself.
+#
+# Single replica of each component (no HA): two m7i-flex.large workers. No SSO, no notifications,
+# no Ingress: the UI and API are reached with `kubectl port-forward` only.
+
+global:
+  domain: localhost:8080
+
+crds:
+  install: true
+  # Removing the release must never delete the Application CRD (and with it every Application).
+  keep: true
+
+configs:
+  cm:
+    # Local admin only, for the port-forwarded UI and CLI. The initial password is rotated and
+    # the argocd-initial-admin-secret deleted after the first login (runbook step 4).
+    admin.enabled: true
+    exec.enabled: false
+    statusbadge.enabled: false
+    # Git is polled; GitHub cannot reach an in-cluster webhook (no public Argo CD endpoint).
+    timeout.reconciliation: 120s
+    # App-of-apps sync waves: Argo CD only waits for a child Application to be Healthy before the
+    # next wave if Applications have a health check. Upstream removed the built-in one (1.8) and
+    # documents this replacement.
+    resource.customizations.health.argoproj.io_Application: |
+      hs = {}
+      hs.status = "Progressing"
+      hs.message = ""
+      if obj.status ~= nil then
+        if obj.status.health ~= nil then
+          hs.status = obj.status.health.status
+          if obj.status.health.message ~= nil then
+            hs.message = obj.status.health.message
+          end
+        end
+      end
+      return hs
+  params:
+    # TLS stays on the server (self-signed); the port-forward targets port 443.
+    server.insecure: false
+  # The F5 NGINX chart is a Helm OCI artifact. Argo CD needs it declared with enableOCI; it is
+  # public, so there are no credentials. The Git repository is public and needs no entry.
+  repositories:
+    nginx-charts:
+      name: nginx-charts
+      type: helm
+      url: ghcr.io/nginx/charts
+      enableOCI: "true"
+
+dex:
+  enabled: false
+
+notifications:
+  enabled: false
+
+controller:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 1Gi
+
+repoServer:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+server:
+  replicas: 1
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+
+applicationSet:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+redis:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+redisSecretInit:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 64Mi

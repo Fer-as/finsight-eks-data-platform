@@ -1,12 +1,15 @@
-# Argo CD Application for the F5 NGINX Ingress Controller (G03.1). Not applied yet: Argo CD
-# itself is installed later (G05). Before applying, replace the security group placeholder with
-# the platform output network.public_ingress_security_group_id (it changes when the network is
-# recreated). The Service must never be created without it.
+# Argo CD Application for the F5 NGINX Ingress Controller (G03.1), managed by the root Application
+# (G08, wave 2: after the AWS Load Balancer Controller, which creates the NLB). The security group
+# placeholder is replaced by the root Application with the platform output
+# network.public_ingress_security_group_id (it changes when the network is recreated). The Service
+# must never be created without it.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: nginx-ingress
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   project: default
   destination:
@@ -28,5 +31,15 @@ spec:
       targetRevision: main
       ref: values
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

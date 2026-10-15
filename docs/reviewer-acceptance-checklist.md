@@ -74,7 +74,7 @@ for the bootstrap and foundation roots on 14 October 2026 (G02.6).
 | G05 | Monitoring Setup | 15 | Not started | Nothing installed | R4.3, R4.4 |
 | G06 | Pipeline 1: Terraform | 10 | In progress | Local validation scripts; plan-only and apply roles, scoped policies and workload boundary applied (#8); apply environment protected; pull-request checks and plan workflow merged (#10, first run passed, plan skipped by the compatibility gate); approval-gated apply written and synthetically tested (#11, not run) | R7.3, R7.5-R7.10, R9.2 |
 | G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | In progress | Implemented: production api/etl/frontend images and `.github/workflows/app.yml` (tests, Checkov, matrix build, Trivy gate, OIDC ECR publish, GitOps pull request). Locally tested on Linux. Not yet run on GitHub; no ECR/Kubernetes evidence | R7.1-R7.9, R4.5, R5.1-R5.7, R8.2, R10.4 |
-| G08 | ArgoCD GitOps | 15 | Not started | No manifests or Argo CD | R8.1-R8.5, R4.2 |
+| G08 | ArgoCD GitOps | 15 | In progress | Argo CD 3.5.4 (chart 10.9.7) values, app-of-apps root with sync waves and injected account values, Applications for the load balancer controller, cert-manager, ClusterIssuers, NGINX, ExternalDNS and FinSight (values.yaml + image-tags.yaml); 27 offline tests pass; not installed | R8.1-R8.5, R4.2 |
 | G09 | Architecture Design | 10 | Not started | Mermaid diagrams only; the draw.io deliverable does not exist | R2.1-R2.4, R1.2 |
 | | **Total** | **135** | | | |
 
@@ -239,9 +239,9 @@ manifests, and Argo CD applies them (G08). There is no second, direct `kubectl` 
 
 | Field | Record |
 |---|---|
-| Status | Not started |
-| Existing implementation | None |
-| Missing | Argo CD install, application definitions, GitOps directory |
+| Status | In progress |
+| Existing implementation | Implemented locally (not installed): `gitops/argocd/values.yaml` (Argo CD v3.5.4, chart 10.9.7, non-HA, no Dex/notifications/Ingress, port-forward access, Application health check for waves), `gitops/argocd/root-application.yaml` (app of apps over `gitops/kustomization.yaml`; Kustomize patches with `test` guards inject VPC, zone, security group and ECR URLs, never committed), child Applications with automated prune/self-heal and sync waves (cert-manager 0; load balancer controller and ClusterIssuers 1; NGINX 2; ExternalDNS 3; FinSight 4), `scripts/render-argocd-root.ps1`, `scripts/validate-gitops.ps1` + `tests/gitops` (27 passed); runbook `docs/infrastructure/argocd.md` |
+| Missing | Live install and evidence (pods, admin secret deleted, app tree, Git-triggered sync, Synced/Healthy, drift reverted, history/rollback); monitoring Application (G05 extension point) |
 | Runtime / repository evidence | Application status, sync history, drift test |
 | Objective verification | Git changes reach the cluster without manual `kubectl`; drift is corrected |
 | Reviewer IDs | R8.1-R8.5, R4.2 |
@@ -249,11 +249,11 @@ manifests, and Argo CD applies them (G08). There is no second, direct `kubectl` 
 
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
-| G08.1 | Argo CD installed from a pinned chart; initial admin secret rotated or removed | Not started | Values; secret status | GitOps directory | Argo CD pods Running |
-| G08.2 | Desired state for FinSight and platform add-ons (NGINX, cert-manager, ExternalDNS, monitoring) declared in Git, e.g. app-of-apps | Not started | Application manifests | GitOps directory | Every workload is owned by an Argo CD Application |
-| G08.3 | Automated sync with prune and self-heal; a Git change reaches the cluster without manual steps | Not started | Sync history | `docs/screenshots/argocd/` | Change replicas in Git and observe reconciliation |
-| G08.4 | All applications Synced and Healthy | Not started | Screenshot | `docs/screenshots/argocd/` | No OutOfSync or Degraded applications |
-| G08.5 | Manual drift is reverted automatically | Not started | Before/after evidence | `docs/evidence/` | `kubectl scale` is undone by Argo CD |
+| G08.1 | Argo CD installed from a pinned chart; initial admin secret rotated or removed | In progress (chart 10.9.7 / v3.5.4 values validated for Kubernetes 1.36; rotation and secret deletion are runbook step 4; not installed) | Values; secret status | GitOps directory | Argo CD pods Running |
+| G08.2 | Desired state for FinSight and platform add-ons (NGINX, cert-manager, ExternalDNS, monitoring) declared in Git, e.g. app-of-apps | In progress (root Application `finsight-root` over `gitops/kustomization.yaml`: load balancer controller, cert-manager, ClusterIssuers, NGINX, ExternalDNS, FinSight; monitoring slot for G05; root build and every child render validated; not applied) | Application manifests | GitOps directory | Every workload is owned by an Argo CD Application |
+| G08.3 | Automated sync with prune and self-heal; a Git change reaches the cluster without manual steps | In progress (automated prune + self-heal on every Application, polling 120 s + jitter; pruning/deletion semantics documented; demonstration not run) | Sync history | `docs/screenshots/argocd/` | Change replicas in Git and observe reconciliation |
+| G08.4 | All applications Synced and Healthy | Not started (needs the live install) | Screenshot | `docs/screenshots/argocd/` | No OutOfSync or Degraded applications |
+| G08.5 | Manual drift is reverted automatically | In progress (self-heal configured; `kubectl scale` demonstration prepared in the runbook; not run) | Before/after evidence | `docs/evidence/` | `kubectl scale` is undone by Argo CD |
 
 ### G09 Architecture Design (10 points)
 
@@ -386,11 +386,11 @@ Each screenshot must come from the real deployed environment and be dated in its
 
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
-| R8.1 | Argo CD deploys FinSight from Git; no manual `kubectl apply` for application workloads | Not started | Application manifests | Repository GitOps directory | Change a replica count in Git and watch Argo CD reconcile it |
-| R8.2 | Images tagged reproducibly with the Git commit SHA (no `latest`); manifests pin by tag and digest | Not started | Workflow and manifests | `.github/workflows/`, GitOps directory | The deployed image digest equals the ECR digest for that commit |
-| R8.3 | CI updates manifests efficiently: one small commit changing only the image reference (e.g. `kustomize edit set image`), not regenerated files | Not started | Commit history | GitOps directory | The manifest-update commit diff touches only image lines |
-| R8.4 | Sync and self-heal behaviour documented and demonstrated | Not started | Screenshot and note | `docs/screenshots/argocd/`, `docs/` | Manual drift is reverted by Argo CD |
-| R8.5 | Argo CD admin access secured; initial admin password rotated or disabled | Not started | Note and configuration | `docs/` | Initial admin secret removed after setup |
+| R8.1 | Argo CD deploys FinSight from Git; no manual `kubectl apply` for application workloads | In progress (FinSight Application from Git at `main`; the only manual applies are the one-time root Application and the database Secret; not installed) | Application manifests | Repository GitOps directory | Change a replica count in Git and watch Argo CD reconcile it |
+| R8.2 | Images tagged reproducibly with the Git commit SHA (no `latest`); manifests pin by tag and digest | In progress (pipeline tags with the commit SHA, writes tag + digest to `image-tags.yaml`; the FinSight Application renders `repository@digest`, tested; no image published yet) | Workflow and manifests | `.github/workflows/`, GitOps directory | The deployed image digest equals the ECR digest for that commit |
+| R8.3 | CI updates manifests efficiently: one small commit changing only the image reference (e.g. `kustomize edit set image`), not regenerated files | In progress (the GitOps pull request changes only `gitops/apps/finsight/image-tags.yaml`; not yet run) | Commit history | GitOps directory | The manifest-update commit diff touches only image lines |
+| R8.4 | Sync and self-heal behaviour documented and demonstrated | In progress (documented in `docs/infrastructure/argocd.md`; demonstration not run) | Screenshot and note | `docs/screenshots/argocd/`, `docs/` | Manual drift is reverted by Argo CD |
+| R8.5 | Argo CD admin access secured; initial admin password rotated or disabled | In progress (no Ingress, port-forward only, exec off, no Dex; rotation and initial-secret deletion in runbook step 4; not done) | Note and configuration | `docs/` | Initial admin secret removed after setup |
 
 ### 4.9 Terraform
 

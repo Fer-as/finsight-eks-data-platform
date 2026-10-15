@@ -1,10 +1,13 @@
-# Argo CD Application for the ClusterIssuers (G04). Apply after cert-manager is healthy. Replace
-# the zone placeholder with config dns.zone_id before applying.
+# Argo CD Application for the ClusterIssuers (G04), managed by the root Application (G08, wave 1:
+# after cert-manager and its CRDs are healthy). The zone placeholder is replaced by the root
+# Application with config dns.zone_id; the chart refuses to render an invalid zone ID.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: cluster-issuers
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   project: default
   destination:
@@ -18,3 +21,13 @@ spec:
       parameters:
         - name: route53.hostedZoneID
           value: REPLACE_WITH_HOSTED_ZONE_ID
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

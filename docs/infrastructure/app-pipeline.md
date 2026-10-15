@@ -21,7 +21,7 @@ published.** Workflow: `.github/workflows/app.yml`.
 - Local result on 15 October 2026: api and etl have 0 fixable and 44 unfixed (Debian 13.7 base);
   frontend has 0.
 
-**Deployment.** Merging the GitOps pull request changes only `image-tags.yaml`. Argo CD (G05/G08)
+**Deployment.** Merging the GitOps pull request changes only `image-tags.yaml`. Argo CD (G08, [argocd.md](argocd.md))
 then renders the chart with `repository@digest` and rolls the change out. Nothing in the pipeline
 calls `kubectl`. The registry URLs contain the account ID, so they are supplied as Argo CD
 Application parameters, not committed.
@@ -48,7 +48,7 @@ existing tag and digest instead of pushing again.
    This is currently **off**: `can_approve_pull_request_reviews=false`. Without it, `gitops` pushes
    its branch and then fails with an explicit error; the pull request can be opened by hand from
    that branch.
-4. **Argo CD** with a FinSight Application that uses `values.yaml` and `image-tags.yaml`, plus the
+4. **Argo CD installed and bootstrapped** ([argocd.md](argocd.md)). The FinSight Application (implemented) uses `values.yaml` and `image-tags.yaml`, plus the
    repository parameters (G05/G08).
 5. **The `finsight-database` Secret** (`PG*` variables) in namespace `finsight`, created with the
    database.

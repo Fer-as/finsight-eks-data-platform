@@ -1,10 +1,14 @@
-# Argo CD Application for ExternalDNS (G04). Not applied yet: Argo CD is installed later (G05).
-# Replace the zone placeholder with config dns.zone_id before applying.
+# Argo CD Application for ExternalDNS (G04), managed by the root Application (G08, wave 3: after
+# NGINX has published the NLB address in Ingress status). The zone placeholder is replaced by the
+# root Application with config dns.zone_id. policy upsert-only: it only creates or updates records
+# under eks.feras-dev.co.uk and never deletes any.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: external-dns
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   project: default
   destination:
@@ -25,5 +29,15 @@ spec:
       targetRevision: main
       ref: values
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
