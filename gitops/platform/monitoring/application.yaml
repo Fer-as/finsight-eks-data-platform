@@ -1,0 +1,42 @@
+# Argo CD Application for the monitoring stack (G05), managed by the root Application at wave 1:
+# after cert-manager (wave 0), which issues the operator's webhook certificate, and before NGINX
+# (wave 2) and FinSight (wave 4), whose ServiceMonitors and PrometheusRule need these CRDs.
+# The grafana-admin Secret must exist in namespace monitoring before the first sync.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 91.8.2
+      helm:
+        releaseName: monitoring
+        valueFiles:
+          - $values/gitops/platform/monitoring/values.yaml
+    - repoURL: https://github.com/Fer-as/finsight-eks-data-platform.git
+      targetRevision: main
+      ref: values
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # The operator CRDs exceed the client-side apply annotation limit.
+      - ServerSideApply=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

@@ -71,7 +71,7 @@ for the bootstrap and foundation roots on 14 October 2026 (G02.6).
 | G02 | Terraform for AWS Infrastructure | 15 | In progress | Modules, remote state and two of three roots applied; platform (VPC, EKS, nodes) not applied; security groups defined and tested (#7); load balancer controller role defined and tested locally (#34) | R9.1-R9.6, R6.6 |
 | G03 | NGINX Ingress Controller | 10 | In progress | F5 NGINX 5.6.3 / chart 2.7.3 values, Argo CD Application and FinSight Ingress chart implemented and validated locally; not deployed | R6.4 |
 | G04 | CertManager and ExternalDNS | 20 | In progress | Pod Identity roles in Terraform; cert-manager, ClusterIssuers, ExternalDNS and Ingress TLS implemented and validated locally; not deployed | R6.3-R6.5, R4.7 |
-| G05 | Monitoring Setup | 15 | Not started | Nothing installed | R4.3, R4.4 |
+| G05 | Monitoring Setup | 15 | In progress | kube-prometheus-stack 91.8.2 (Grafana 13.2.4) as an Argo CD Application (wave 1), NGINX latency metrics + ServiceMonitor, FinSight API `/metrics` instrumentation, ServiceMonitor, alert rules and dashboard; 41 offline tests pass; not installed | R4.3, R4.4 |
 | G06 | Pipeline 1: Terraform | 10 | In progress | Local validation scripts; plan-only and apply roles, scoped policies and workload boundary applied (#8); apply environment protected; pull-request checks and plan workflow merged (#10, first run passed, plan skipped by the compatibility gate); approval-gated apply written and synthetically tested (#11, not run) | R7.3, R7.5-R7.10, R9.2 |
 | G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | In progress | Implemented: production api/etl/frontend images and `.github/workflows/app.yml` (tests, Checkov, matrix build, Trivy gate, OIDC ECR publish, GitOps pull request). Locally tested on Linux. Not yet run on GitHub; no ECR/Kubernetes evidence | R7.1-R7.9, R4.5, R5.1-R5.7, R8.2, R10.4 |
 | G08 | ArgoCD GitOps | 15 | In progress | Argo CD 3.5.4 (chart 10.9.7) values, app-of-apps root with sync waves and injected account values, Applications for the load balancer controller, cert-manager, ClusterIssuers, NGINX, ExternalDNS and FinSight (values.yaml + image-tags.yaml); 27 offline tests pass; not installed | R8.1-R8.5, R4.2 |
@@ -171,9 +171,9 @@ Certificate issuance, renewal, DNS management and the final HTTPS result are tes
 
 | Field | Record |
 |---|---|
-| Status | Not started |
-| Existing implementation | None |
-| Missing | kube-prometheus-stack (or equivalent), NGINX metrics scraping, application metrics, dashboards |
+| Status | In progress |
+| Existing implementation | Implemented locally (not installed): `gitops/platform/monitoring` (kube-prometheus-stack 91.8.2, Prometheus v3.15.0, Grafana 13.2.4, node-exporter, kube-state-metrics; EKS control-plane targets off; no Alertmanager, Ingress or PVCs; Grafana admin from Secret `grafana-admin`); NGINX `enableLatencyMetrics` + metrics Service + ServiceMonitor; API `finsight_api_requests_total` / `finsight_api_request_duration_seconds` on internal `/metrics` (3 new pytest tests); FinSight ServiceMonitor, `FinSightApiDown` / `FinSightApiHighErrorRate` rules and dashboard `FinSight / Service overview`; `tests/gitops/test_monitoring.py` (render, kubeconform 1.36, promtool check + unit tests, PromQL of every panel, whole-cluster sizing); runbook `docs/infrastructure/monitoring.md` |
+| Missing | Live install and evidence: pods Running, targets UP, dashboards with live data under generated traffic, failed default login; an image published with the instrumented API |
 | Runtime / repository evidence | Prometheus targets, Grafana dashboards with live data, sizing note |
 | Objective verification | Each metric family is visible with non-empty, current data |
 | Reviewer IDs | R4.3, R4.4 |
@@ -181,11 +181,11 @@ Certificate issuance, renewal, DNS management and the final HTTPS result are tes
 
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
-| G05.1 | Prometheus and Grafana installed with node-exporter and kube-state-metrics, pinned chart, via Argo CD; resource requests sized for two m7i.large nodes | Not started | Helm values; pod list | GitOps directory | All monitoring pods Running; nodes not over-committed |
-| G05.2 | Node, pod, namespace and service metrics, including CPU and memory, shown in Grafana with real data | Not started | Dashboard screenshots with timestamps | `docs/screenshots/monitoring/` | Panels show non-empty series within the deployment window |
-| G05.3 | Ingress metrics: NGINX controller metrics scraped (requests, status codes, latency) and shown on a dashboard | Not started | Target and dashboard screenshots | Same | Generated traffic visibly changes the panels |
-| G05.4 | Application metrics from FinSight (API request metrics, or at minimum per-service ingress metrics) | Not started | Metrics endpoint or ingress breakdown; dashboard | `apps/api`, GitOps directory, screenshots | Calling the API changes the panel |
-| G05.5 | Grafana access secured: no default admin password, not publicly exposed without authentication | Not started | Values and access note | GitOps directory, `docs/` | Login with defaults fails |
+| G05.1 | Prometheus and Grafana installed with node-exporter and kube-state-metrics, pinned chart, via Argo CD; resource requests sized for two m7i.large nodes | In progress (pinned chart via Argo CD wave 1; node-exporter and kube-state-metrics included; requests for every workload plus Argo CD total 1.43 vCPU / 3.6 GiB / 21 pods, checked against two m7i-flex.large workers; not installed) | Helm values; pod list | GitOps directory | All monitoring pods Running; nodes not over-committed |
+| G05.2 | Node, pod, namespace and service metrics, including CPU and memory, shown in Grafana with real data | In progress (cluster, namespace, pod, node, node-exporter and networking dashboards rendered; FinSight pod panels; no live data yet) | Dashboard screenshots with timestamps | `docs/screenshots/monitoring/` | Panels show non-empty series within the deployment window |
+| G05.3 | Ingress metrics: NGINX controller metrics scraped (requests, status codes, latency) and shown on a dashboard | In progress (latency histogram with `code`/`service` labels and request totals scraped via ServiceMonitor; FinSight dashboard panels by status code and Service; not scraped live) | Target and dashboard screenshots | Same | Generated traffic visibly changes the panels |
+| G05.4 | Application metrics from FinSight (API request metrics, or at minimum per-service ingress metrics) | In progress (API request count and latency by route template and status, tested; per-Service ingress metrics too; image with instrumentation not yet published) | Metrics endpoint or ingress breakdown; dashboard | `apps/api`, GitOps directory, screenshots | Calling the API changes the panel |
+| G05.5 | Grafana access secured: no default admin password, not publicly exposed without authentication | In progress (admin from Secret `grafana-admin` created outside Git, default password never rendered, anonymous and sign-up off, ClusterIP + port-forward only; login test pending) | Values and access note | GitOps directory, `docs/` | Login with defaults fails |
 
 ### G06 Pipeline 1: Terraform (10 points)
 
@@ -241,7 +241,7 @@ manifests, and Argo CD applies them (G08). There is no second, direct `kubectl` 
 |---|---|
 | Status | In progress |
 | Existing implementation | Implemented locally (not installed): `gitops/argocd/values.yaml` (Argo CD v3.5.4, chart 10.9.7, non-HA, no Dex/notifications/Ingress, port-forward access, Application health check for waves), `gitops/argocd/root-application.yaml` (app of apps over `gitops/kustomization.yaml`; Kustomize patches with `test` guards inject VPC, zone, security group and ECR URLs, never committed), child Applications with automated prune/self-heal and sync waves (cert-manager 0; load balancer controller and ClusterIssuers 1; NGINX 2; ExternalDNS 3; FinSight 4), `scripts/render-argocd-root.ps1`, `scripts/validate-gitops.ps1` + `tests/gitops` (27 passed); runbook `docs/infrastructure/argocd.md` |
-| Missing | Live install and evidence (pods, admin secret deleted, app tree, Git-triggered sync, Synced/Healthy, drift reverted, history/rollback); monitoring Application (G05 extension point) |
+| Missing | Live install and evidence (pods, admin secret deleted, app tree, Git-triggered sync, Synced/Healthy, drift reverted, history/rollback) |
 | Runtime / repository evidence | Application status, sync history, drift test |
 | Objective verification | Git changes reach the cluster without manual `kubectl`; drift is corrected |
 | Reviewer IDs | R8.1-R8.5, R4.2 |
@@ -250,7 +250,7 @@ manifests, and Argo CD applies them (G08). There is no second, direct `kubectl` 
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
 | G08.1 | Argo CD installed from a pinned chart; initial admin secret rotated or removed | In progress (chart 10.9.7 / v3.5.4 values validated for Kubernetes 1.36; rotation and secret deletion are runbook step 4; not installed) | Values; secret status | GitOps directory | Argo CD pods Running |
-| G08.2 | Desired state for FinSight and platform add-ons (NGINX, cert-manager, ExternalDNS, monitoring) declared in Git, e.g. app-of-apps | In progress (root Application `finsight-root` over `gitops/kustomization.yaml`: load balancer controller, cert-manager, ClusterIssuers, NGINX, ExternalDNS, FinSight; monitoring slot for G05; root build and every child render validated; not applied) | Application manifests | GitOps directory | Every workload is owned by an Argo CD Application |
+| G08.2 | Desired state for FinSight and platform add-ons (NGINX, cert-manager, ExternalDNS, monitoring) declared in Git, e.g. app-of-apps | In progress (root Application `finsight-root` over `gitops/kustomization.yaml`: load balancer controller, cert-manager, ClusterIssuers, monitoring (G05), NGINX, ExternalDNS, FinSight; root build and every child render validated; not applied) | Application manifests | GitOps directory | Every workload is owned by an Argo CD Application |
 | G08.3 | Automated sync with prune and self-heal; a Git change reaches the cluster without manual steps | In progress (automated prune + self-heal on every Application, polling 120 s + jitter; pruning/deletion semantics documented; demonstration not run) | Sync history | `docs/screenshots/argocd/` | Change replicas in Git and observe reconciliation |
 | G08.4 | All applications Synced and Healthy | Not started (needs the live install) | Screenshot | `docs/screenshots/argocd/` | No OutOfSync or Degraded applications |
 | G08.5 | Manual drift is reverted automatically | In progress (self-heal configured; `kubectl scale` demonstration prepared in the runbook; not run) | Before/after evidence | `docs/evidence/` | `kubectl scale` is undone by Argo CD |
@@ -338,8 +338,8 @@ Each screenshot must come from the real deployed environment and be dated in its
 |---|---|---|---|---|---|
 | R4.1 | EKS workloads: nodes Ready across both AZs and all FinSight pods Running | Not started | `kubectl get nodes` and `get pods -A` output, or console view | `docs/screenshots/eks/` | Names and dates match the deployment record |
 | R4.2 | Argo CD applications Synced and Healthy | Not started | Argo CD UI | `docs/screenshots/argocd/` | Application names match the repository manifests |
-| R4.3 | Prometheus targets up | Not started | Targets page | `docs/screenshots/monitoring/` | FinSight and cluster targets show UP |
-| R4.4 | Grafana dashboard with live FinSight or cluster metrics | Not started | Dashboard view | `docs/screenshots/monitoring/` | Time range is within the deployment window |
+| R4.3 | Prometheus targets up | Not started (configuration ready; verification commands in `docs/infrastructure/monitoring.md`) | Targets page | `docs/screenshots/monitoring/` | FinSight and cluster targets show UP |
+| R4.4 | Grafana dashboard with live FinSight or cluster metrics | Not started (dashboards provisioned; needs the live window) | Dashboard view | `docs/screenshots/monitoring/` | Time range is within the deployment window |
 | R4.5 | CI/CD runs passing: tests, scans, image build and publish | Not started | GitHub Actions run summaries | `docs/screenshots/cicd/` | Run IDs match the repository history |
 | R4.6 | Data processing: ETL job completed and curated output in S3 | Not started | Job logs and S3 listing | `docs/screenshots/data/` | Object keys match the ETL code's prefixes |
 | R4.7 | Application served over HTTPS with a valid certificate | Not started | Browser view with certificate details | `docs/screenshots/app/` | Issuer is Let's Encrypt; hostname matches the configuration |

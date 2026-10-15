@@ -1,0 +1,132 @@
+# kube-prometheus-stack 91.8.2 (Prometheus Operator v0.94.1) from
+# https://prometheus-community.github.io/helm-charts (G05). Prometheus, Grafana, node-exporter and
+# kube-state-metrics for a temporary two-node assessment cluster (m7i-flex.large). No Ingress,
+# no persistent volumes, no Alertmanager: everything is reached with `kubectl port-forward`.
+# See docs/infrastructure/monitoring.md.
+
+# EKS runs the control plane; etcd, the scheduler and the controller manager cannot be scraped,
+# and the EKS kube-proxy add-on binds metrics to 127.0.0.1. Their targets and rules would only
+# show as down.
+kubeEtcd:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+defaultRules:
+  rules:
+    etcd: false
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    kubeControllerManager: false
+    kubeProxy: false
+
+# Alerts are evaluated by Prometheus and visible on its Alerts page; there is no receiver to
+# route them to in this environment.
+alertmanager:
+  enabled: false
+
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 96Mi
+    limits:
+      memory: 192Mi
+  # Webhook certificates from cert-manager (wave 0). The chart's default creates them with Helm
+  # hook Jobs at install time, which Argo CD would re-run on every sync.
+  admissionWebhooks:
+    certManager:
+      enabled: true
+    patch:
+      enabled: false
+
+prometheus:
+  service:
+    type: ClusterIP
+  prometheusSpec:
+    scrapeInterval: 30s
+    evaluationInterval: 30s
+    # Select every ServiceMonitor, PodMonitor and PrometheusRule in the cluster, not only those
+    # labelled with this release (FinSight and NGINX define their own).
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    scrapeConfigSelectorNilUsesHelmValues: false
+    # Temporary cluster: two days on the node's disk (emptyDir), capped below the volume limit.
+    # Data is lost if the pod is rescheduled; acceptable for a short deployment window.
+    retention: 2d
+    retentionSize: 3GB
+    storageSpec:
+      emptyDir:
+        sizeLimit: 4Gi
+    resources:
+      requests:
+        cpu: 200m
+        memory: 768Mi
+      limits:
+        memory: 1536Mi
+
+grafana:
+  # 13.2.4 (13 October 2026) fixes four CVEs present in the chart's default 13.2.3.
+  image:
+    tag: 13.2.4
+  # Credentials come from a Secret created outside Git before the first sync (runbook step 1);
+  # nothing generates or commits a password, and the chart's default admin password is not used.
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  grafana.ini:
+    auth.anonymous:
+      enabled: false
+    users:
+      allow_sign_up: false
+    analytics:
+      reporting_enabled: false
+      check_for_updates: false
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: false
+  persistence:
+    enabled: false
+  testFramework:
+    enabled: false
+  defaultDashboardsTimezone: utc
+  sidecar:
+    dashboards:
+      # Also load dashboards that applications ship as labelled ConfigMaps (gitops/apps/finsight).
+      searchNamespace: ALL
+    resources:
+      requests:
+        cpu: 10m
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 160Mi
+    limits:
+      memory: 320Mi
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      memory: 64Mi

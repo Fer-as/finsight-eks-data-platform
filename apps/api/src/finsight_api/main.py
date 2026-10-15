@@ -1,14 +1,52 @@
+import time
 from datetime import date
 from typing import Annotated, Literal
 
 import psycopg
-from fastapi import Depends, FastAPI, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi.responses import JSONResponse, Response
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 
 from finsight_api import reporting
 from finsight_api.settings import DEFAULT_YEAR
 
 app = FastAPI(title="FinSight", version="0.1.0", description="Synthetic GBP analytics only")
+
+# Request metrics for Prometheus (G05.4). Labelled by route template, never the raw path, so
+# query strings and unknown URLs cannot create unbounded series.
+REQUESTS = Counter(
+    "finsight_api_requests_total",
+    "API requests by method, route and status",
+    ["method", "route", "status"],
+)
+DURATION = Histogram(
+    "finsight_api_request_duration_seconds",
+    "API request duration by method and route",
+    ["method", "route"],
+)
+
+
+@app.middleware("http")
+async def record_metrics(request: Request, call_next):
+    started = time.perf_counter()
+    status = 500
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        return response
+    finally:
+        route = request.scope.get("route")
+        path = getattr(route, "path", "unmatched")
+        if path != "/metrics":
+            REQUESTS.labels(request.method, path, str(status)).inc()
+            DURATION.labels(request.method, path).observe(time.perf_counter() - started)
+
+
+# Scraped in-cluster on the API Service. The Ingress routes only /api to the API, so this
+# endpoint is not reachable from outside the cluster.
+@app.get("/metrics", include_in_schema=False)
+def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 def database():

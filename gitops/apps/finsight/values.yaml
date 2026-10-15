@@ -50,3 +50,9 @@ ingress:
     clusterIssuer: letsencrypt-staging
     # cert-manager renews this long before expiry (Let's Encrypt certificates last 90 days).
     renewBefore: 720h
+
+# G05: ServiceMonitor for the API's /metrics, alert rules and the Grafana dashboard
+# (dashboards/finsight.json). Needs the monitoring stack's CRDs (monitoring Application, wave 1).
+monitoring:
+  enabled: true
+  scrapeInterval: 30s
