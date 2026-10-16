@@ -83,7 +83,7 @@ ingress:
   # G04: turn on after cert-manager and its ClusterIssuers exist. With TLS configured, F5 NGINX
   # redirects HTTP to HTTPS by default (ConfigMap key ssl-redirect).
   tls:
-    enabled: false
+    enabled: true
     secretName: finsight-tls
     clusterIssuer: letsencrypt-staging
     # cert-manager renews this long before expiry (Let's Encrypt certificates last 90 days).
