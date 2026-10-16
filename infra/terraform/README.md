@@ -140,3 +140,13 @@ Read the [architecture](../../docs/architecture/day2-aws.md),
 [compatibility record](../../docs/infrastructure/compatibility.md),
 [cost estimate](../../docs/infrastructure/costs.md) and
 [bootstrap/deployment/teardown runbook](../../docs/infrastructure/runbook.md).
+
+## Deployment verification (16 October 2026)
+
+- The platform root was applied from a reviewed, saved local plan: **68 resources created,
+  0 changed, 0 destroyed**. The EKS 1.36 cluster `finsight-dev` reached ACTIVE in eu-west-2.
+- The managed node group runs **two m7i-flex.large** workers. `kubectl get nodes` showed both
+  Ready, one in eu-west-2a and one in eu-west-2b. Placement is still best effort, not guaranteed.
+- The `TERRAFORM_CONFIG_JSON` secrets in both GitHub environments (`dev-infrastructure`,
+  `dev-infrastructure-apply`) were refreshed on 15 October 2026 from the current configuration.
+- A later local read-only `terraform plan` of the platform root reported no changes (no drift).
