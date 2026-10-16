@@ -36,6 +36,10 @@ managedRecordTypes:
 # zone-id-filter is added at install time (config dns.zone_id).
 extraArgs:
   aws-zone-type: public
+  # The domain filter (eks.feras-dev.co.uk) is a subdomain of the hosted zone (feras-dev.co.uk). In
+  # v0.23.0 a zone is only used if its name matches the filter, or if this flag lets the filter
+  # match a parent zone. Without it no zone is selected and no record is created.
+  aws-zone-match-parent: "true"
 
 interval: 1m
 resources:
