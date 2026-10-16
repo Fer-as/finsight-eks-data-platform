@@ -84,8 +84,10 @@ ingress:
   # redirects HTTP to HTTPS by default (ConfigMap key ssl-redirect).
   tls:
     enabled: true
-    secretName: finsight-tls
-    clusterIssuer: letsencrypt-staging
+    # Staging was verified first (16 October 2026: Certificate Ready, DNS-01 cleaned up). A separate
+    # Secret keeps the staging certificate from ever being served under the production name.
+    secretName: finsight-tls-production
+    clusterIssuer: letsencrypt-production
     # cert-manager renews this long before expiry (Let's Encrypt certificates last 90 days).
     renewBefore: 720h
 
