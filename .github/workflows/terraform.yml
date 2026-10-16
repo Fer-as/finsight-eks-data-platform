@@ -119,14 +119,14 @@ jobs:
       - name: Initialise the S3 backend
         if: steps.config.outputs.plan_enabled == 'true'
         working-directory: ${{ env.PLATFORM_ROOT }}
-        run: terraform init -input=false -lockfile=readonly -backend-config=backend.hcl -no-color
+        run: terraform init -input=false -lockfile=readonly '-backend-config=backend.hcl' -no-color
       # Plan text contains attribute values, so it goes to a temporary file, not the public log.
       # Diagnostics still reach the log through stderr, after masking.
       - name: Plan (state lock held; output kept out of the log)
         if: steps.config.outputs.plan_enabled == 'true'
         working-directory: ${{ env.PLATFORM_ROOT }}
         run: |
-          terraform plan -input=false -lock-timeout=5m -no-color -out=platform.tfplan > "$env:RUNNER_TEMP/platform-plan.txt"
+          terraform plan -input=false -lock-timeout=5m -no-color '-out=platform.tfplan' > "$env:RUNNER_TEMP/platform-plan.txt"
           if ($LASTEXITCODE -ne 0) { throw "terraform plan failed; see the diagnostics above. No force-unlock is attempted." }
       - name: Summarise the plan
         if: steps.config.outputs.plan_enabled == 'true'

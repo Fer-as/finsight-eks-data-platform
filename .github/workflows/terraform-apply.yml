@@ -98,12 +98,12 @@ jobs:
         run: ./scripts/ci/assert-terraform-ci-account.ps1 -Role plan
       - name: Initialise the S3 backend
         working-directory: ${{ env.PLATFORM_ROOT }}
-        run: terraform init -input=false -lockfile=readonly -backend-config=backend.hcl -no-color
+        run: terraform init -input=false -lockfile=readonly '-backend-config=backend.hcl' -no-color
       # Plan text contains attribute values, so it goes to a temporary file, not the public log.
       - name: Plan (state lock held; output kept out of the log)
         working-directory: ${{ env.PLATFORM_ROOT }}
         run: |
-          terraform plan -input=false -lock-timeout=5m -no-color -out=platform.tfplan > "$env:RUNNER_TEMP/platform-plan.txt"
+          terraform plan -input=false -lock-timeout=5m -no-color '-out=platform.tfplan' > "$env:RUNNER_TEMP/platform-plan.txt"
           if ($LASTEXITCODE -ne 0) { throw "terraform plan failed; see the diagnostics above. No force-unlock is attempted." }
       # Gates (no VPC or EKS cluster lifecycle changes or imports, ever; no deletes, replacements or
       # forgets unless allow_destroy), then encryption.
@@ -189,7 +189,7 @@ jobs:
         run: ./scripts/ci/assert-terraform-ci-account.ps1 -Role apply
       - name: Initialise the S3 backend
         working-directory: ${{ env.PLATFORM_ROOT }}
-        run: terraform init -input=false -lockfile=readonly -backend-config=backend.hcl -no-color
+        run: terraform init -input=false -lockfile=readonly '-backend-config=backend.hcl' -no-color
       # download-artifact fails on an artifact digest mismatch; the script then checks our own digests.
       - name: Download the encrypted plan
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
