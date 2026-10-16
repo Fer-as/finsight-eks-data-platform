@@ -177,6 +177,11 @@ resource "aws_cloudwatch_log_group" "flow" {
   #checkov:skip=CKV_AWS_158:CloudWatch default AES-GCM encryption is retained for seven-day assessment logs; no independent key-control requirement. See docs/evidence/day2-terraform-validation.md finding LOGS-KMS.
   name              = "/finsight/${var.name}/vpc-flow"
   retention_in_days = var.config.log_retention_days
+
+  # G06 protected-apply evidence: tag-only, in-place change (provider default_tags still apply).
+  tags = {
+    ChangeEvidence = "g06-protected-apply"
+  }
 }
 resource "aws_iam_role" "flow" {
   name                 = "${var.name}-flow-logs"
