@@ -1,7 +1,8 @@
 # Argo CD GitOps (G08)
 
-Status, 15 October 2026: **implemented and validated locally; not installed.** No cluster
-currently exists. Nothing below has been run against EKS. Live evidence is listed at the end.
+Status: **installed on 16 October 2026** and verified live: eight Applications Synced and
+Healthy, automated sync from merges and a self-heal demonstration
+([evidence](../screenshots/README.md#g08-argo-cd)). The design notes below are unchanged.
 
 ## Versions
 
@@ -193,7 +194,11 @@ merge does not trigger another build and publish.
 
    Expected time is about 5–10 minutes. NLB provisioning dominates.
 
-## Assessment demonstrations (live; not yet run)
+## Assessment demonstrations
+
+Status, 17 October 2026: G08.1, G08.2, G08.4 and G08.5 were demonstrated live. G08.3 is
+evidenced by the automated syncs of merged PRs #47, #50 and #51 rather than the replicas change
+described below. See the [evidence index](../screenshots/README.md#g08-argo-cd).
 
 | Criterion | Demonstration | Evidence |
 |---|---|---|
@@ -301,15 +306,9 @@ CRDs catalog for Argo CD, cert-manager and load balancer controller resources; m
 
 ## Live evidence outstanding
 
-- Argo CD pods Running and the initial secret deleted (G08.1).
-- The tree of the seven children (G08.2).
-- A Git change reconciled (G08.3).
-- All Applications Synced and Healthy (G08.4).
-- Drift reverted (G08.5).
-- History and a Git rollback.
-- The image PR rolled out by digest (G07.6).
+Captured on 16-17 October 2026: Argo CD running with the initial secret deleted (G08.1), the
+seven child Applications (G08.2), Git changes reconciled (G08.3), all Applications Synced and
+Healthy (G08.4), drift reverted (G08.5) and the image PR rolled out by digest (G07.6).
 
-These need:
-- a platform redeploy
-- a published image and its merged GitOps pull request (G07 owner prerequisites)
-- the `finsight-database` Secret
+Still outstanding:
+- History and a Git rollback.

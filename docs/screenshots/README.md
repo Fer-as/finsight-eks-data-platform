@@ -110,9 +110,8 @@ The four `terraform-apply-*` screenshots follow one protected apply,
   [Kubernetes](../architecture/finsight-architecture-kubernetes.png) and
   [CI/CD and IAM](../architecture/finsight-architecture-cicd.png)
 
-The diagram's "Deployment status (15 Oct 2026)" banner is out of date. It says the cluster was destroyed
-and the add-ons were not yet deployed, which no longer describes the platform. The sections above show
-the state verified on 16–17 October. The banner will be corrected in a separate change.
+The diagram's status banner records the deployment verified on 16–17 October 2026. ETL to S3 and
+dbt are shown as planned.
 
 ## Not yet evidenced
 

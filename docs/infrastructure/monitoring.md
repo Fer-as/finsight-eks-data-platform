@@ -1,8 +1,8 @@
 # Monitoring: Prometheus and Grafana (G05)
 
-Status, 15 October 2026: **implemented and validated locally; not installed.** No cluster
-currently exists. No metric, target or dashboard below has been observed on EKS. Live evidence is
-listed at the end.
+Status: **installed on 16 October 2026** and verified live: targets UP (including the FinSight
+API and NGINX), the FinSight dashboard shows live data, and the default Grafana login is rejected
+([evidence](../screenshots/README.md#g05-monitoring)).
 
 ## Versions
 
@@ -199,18 +199,9 @@ for G05.
 
 ## Live evidence outstanding
 
-All of the following, captured in one deployment window into `docs/screenshots/monitoring/` with
-timestamps:
-- Monitoring pods Running, with node requests within capacity (G05.1).
-- The Prometheus targets page with FinSight and cluster targets UP (R4.3).
-- Node, pod and namespace dashboards with live data (G05.2, R4.4).
-- NGINX panels changing under generated traffic (G05.3).
-- API panels changing when the API is called (G05.4).
-- A failed default login and a successful Secret-based login (G05.5).
+Captured on 16-17 October 2026 ([evidence](../screenshots/README.md#g05-monitoring)): monitoring
+pods Running (G05.1), targets UP including FinSight and NGINX (R4.3), NGINX and API panels with
+live data (G05.3, G05.4), and the failed default login (G05.5).
 
-These need:
-- a platform redeploy
-- an Argo CD bootstrap
-- published images that include the instrumented API: the next G07 publish after this change is
-  merged
-- the `grafana-admin` and `finsight-database` Secrets
+Still outstanding:
+- Node, namespace and service dashboard screenshots with live data (G05.2, R4.4).
