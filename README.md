@@ -202,6 +202,7 @@ I reach them with `kubectl port-forward`. More detail: [monitoring](docs/infrast
 - **Frontend badge.** It still says "LOCAL ENVIRONMENT", a leftover from local development.
 
 Verification notes and Terraform validation results are in [docs/evidence](docs/evidence).
+Screenshots for each assessment area are indexed in [docs/screenshots](docs/screenshots/README.md).
 Requirement-by-requirement status is in the [assessment tracker](docs/assessment-tracker.md).
 I tracked the work as [GitHub Issues](https://github.com/Fer-as/finsight-eks-data-platform/issues) on the
 [FinSight project board](https://github.com/users/Fer-as/projects/2).
