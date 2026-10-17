@@ -68,7 +68,7 @@ for the bootstrap and foundation roots on 14 October 2026 (G02.6).
 
 | ID | Category | Points | Status | Readiness summary (not a grade) | Reviewer IDs |
 |---|---|---:|---|---|---|
-| G01 | Board / Tickets | 10 | In progress | Public board with 31 issues; PRs close their issues; one board snapshot (17 October 2026); dated start and middle snapshots missing (G01.5) | R11.2 |
+| G01 | Board / Tickets | 10 | In progress | Public board with 31 issues; PRs #33 and #35 closed linked issues; board statuses being reconciled; one board snapshot (17 October 2026); dated start and middle snapshots missing (G01.5) | R11.2 |
 | G02 | Terraform for AWS Infrastructure | 15 | In progress | All three roots applied; platform applied 16 October 2026 and verified (cluster, node group, five add-ons, two nodes Ready in two AZs). Still to record: subnet/route, IAM and security-group listings and instance IMDSv2/encryption checks | R9.1-R9.6, R6.6 |
 | G03 | NGINX Ingress Controller | 10 | In progress | Deployed via Argo CD 16 October 2026; routing, 301 redirect and 404 verified live. Still to record: NLB subnets against the public subnets (G03.2) | R6.4 |
 | G04 | CertManager and ExternalDNS | 20 | In progress | Deployed 16 October 2026: production certificate Ready and trusted, ExternalDNS records live. Not yet demonstrated: forced renewal (G04.3) and record lifecycle (G04.5) | R6.3-R6.5, R4.7 |
