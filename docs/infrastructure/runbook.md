@@ -152,7 +152,7 @@ kubectl get pods -n kube-system -o wide
 ```
 
 Require cluster/node group ACTIVE, all five add-ons ACTIVE with no health issues, two Ready
-m7i.large workers and healthy system pods. Count actual nodes per AZ; two subnet IDs in a
+m7i-flex.large workers and healthy system pods. Count actual nodes per AZ; two subnet IDs in a
 node group are not placement evidence. If uneven, document reality and investigate capacity/
 ASG balancing before making resilience claims; do not arbitrarily terminate nodes.
 Verify worker ENIs have no public IP, root volumes are encrypted, IMDSv2 is required,

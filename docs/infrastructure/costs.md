@@ -4,6 +4,15 @@ Estimate dated 13 October 2026, **USD**, on-demand Linux/shared tenancy. No free
 discounts, VAT or currency conversion assumed. Financial application reporting remains GBP;
 AWS infrastructure estimates use AWS's quoted USD rates.
 
+**Update, 17 October 2026.** The platform runs on `m7i-flex.large`, not the `m7i.large` priced
+below. The London on-demand rate from the AWS Price List API is **$0.11072/hour** (effective
+1 October 2026), against $0.11655/hour for `m7i.large`. Two nodes therefore cost $5.31/day
+instead of $5.59/day, and the baselines fall by about $0.28/day: roughly **$9.42/day** for the
+platform alone and **$10.56/day** with the NLB and application volumes, which is the deployed
+configuration. A third node would add about $2.75/day. The other figures in this document are
+the 13 October estimates for `m7i.large`. Actual spend has not been measured yet; it is recorded
+at teardown (R12.4).
+
 | Item | Rate / assumption | Approx. daily cost |
 |---|---|---:|
 | EKS standard-support control plane | $0.10/hour | $2.40 |

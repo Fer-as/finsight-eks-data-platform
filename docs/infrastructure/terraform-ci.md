@@ -1,12 +1,14 @@
 # Terraform CI identities and approval gate
 
 Decision record, 14 October 2026 (issue #8, Option A approved by the owner; independently
-reviewed and hardened the same day). Current state:
+reviewed and hardened the same day). Current state, 17 October 2026:
 - The foundation IAM is applied, and both GitHub environments and the `main` ruleset are configured.
-- The pull-request workflow (#10) is merged; its first run passed, with the plan skipped by the
-  compatibility gate.
-- The approval-gated apply workflow (#11) is written and tested with synthetic fixtures, but it
-  has not run and no CI apply has happened.
+- The pull-request workflow (#10) plans the live platform with the plan-only role, for example
+  [run 38896532913](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/38896532913)
+  for PR #53.
+- The approval-gated apply workflow (#11) has applied one reviewed saved plan: a tag-only update
+  in [run 38901260888](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/38901260888)
+  (0 create, 1 update, 0 delete). A deliberate failing run (G06.6) has not been recorded yet.
 
 ## Roles
 
@@ -159,13 +161,13 @@ Status on 14 October 2026.
 |---|---|
 | Exact immutable OIDC subject per environment, no wildcards | Implemented and applied (plan, image and apply roles) |
 | Separate plan (read-only) and apply roles | Implemented and applied |
-| Apply permissions scoped, boundary mandatory | Applied (foundation, 11 resources); synthetic tests only, no CI apply has run |
+| Apply permissions scoped, boundary mandatory | Applied (foundation, 11 resources); synthetic policy tests, and one CI apply (run 38901260888) |
 | Protected `dev-infrastructure-apply` environment | Configured: reviewer Fer-as, `main` only, administrator bypass off, variable `AWS_ROLE_ARN`, secrets `TERRAFORM_CONFIG_JSON` and `PLAN_DECRYPTION_IDENTITY` |
 | Protected `dev-infrastructure` environment | Configured: reviewer Fer-as, `refs/pull/*/merge` and `main`, administrator bypass off, variables `AWS_ROLE_ARN` (plan role), `PLAN_ENCRYPTION_RECIPIENT` and `PLAN_REVIEW_RECIPIENT`, secret `TERRAFORM_CONFIG_JSON` |
 | `main` protected | Ruleset: pull request required (0 approvals, single maintainer), no force pushes, no deletion, no bypass |
-| No AWS credentials for untrusted pull requests | Pull-request workflow (#10): `pull_request` trigger only, plan job skipped for fork heads, `permissions: {}` by default; **not yet run** |
-| Plan output does not leak private values | Pull-request workflow (#10): plan text kept out of logs, values masked, summary shows actions and digests only, no binary plan artifact; **not yet run** |
-| Saved-plan, commit and digest binding | Apply workflow (#11): encrypted saved plan with commit, run, state, lock, version, ciphertext, plaintext and changes digests checked before apply; synthetic tests only, **not yet run** |
+| No AWS credentials for untrusted pull requests | Pull-request workflow (#10): `pull_request` trigger only, plan job skipped for fork heads, `permissions: {}` by default; runs on PRs #52 and #53 |
+| Plan output does not leak private values | Pull-request workflow (#10): plan text kept out of logs, values masked, summary shows actions and digests only, no binary plan artifact; runs on PRs #52 and #53 |
+| Saved-plan, commit and digest binding | Apply workflow (#11): encrypted saved plan with commit, run, state, lock, version, ciphertext, plaintext and changes digests checked before apply; synthetic tests, and verified in run 38901260888 |
 | No unapproved destroy or replacement | Apply workflow (#11): refused unless `allow_destroy` and reviewer approval; VPC creation or replacement always refused. IAM cannot express it, because the apply role must be able to delete platform resources for replacements |
 | Required reviewer and self-review limits | Configured; single-maintainer self-approval, not two-person review |
 
@@ -261,7 +263,9 @@ environment explicitly. They never contain an `arn:aws` literal.
 
 ## Approval-gated apply (`.github/workflows/terraform-apply.yml`, issue #11)
 
-Written, independently reviewed and tested with synthetic fixtures; **not yet run**. The keys and environments it needs are now configured (14 October 2026).
+Written, independently reviewed and tested with synthetic fixtures. **First real run:**
+[run 38901260888](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/38901260888)
+on 16–17 October 2026 applied a reviewed tag-only change after both approvals.
 
 The security regression tests are in `scripts/ci/tests/plan-protection.tests.ps1`: 59 checks using throwaway age keys and synthetic plans, with no AWS. The pull-request `checks` job runs them on every relevant change.
 
@@ -382,21 +386,23 @@ malformed, wrong or misplaced keys all fail closed.
 
 ### Reviewing a plan before approving (Windows PowerShell)
 
-**One-time setup:**
+**One-time setup.** Install [age](https://github.com/FiloSottile/age) so that `age` and
+`age-keygen` are on your `PATH`, for example with `winget install FiloSottile.age`. If you use the
+v1.3.2 Windows release zip instead, check that its SHA-256 is
+`f48d8f8f9ebe903ab5027ed067652f2cc1db94bc206976430133b905dcd8e8c7` before extracting it. Then
+create the reviewer identity in a private folder of your choice, never inside the repository:
 
 ```powershell
-$tools = "$HOME\tools"; New-Item -ItemType Directory -Force $tools, "$HOME\.age" | Out-Null
-Invoke-WebRequest -UseBasicParsing "https://github.com/FiloSottile/age/releases/download/v1.3.2/age-v1.3.2-windows-amd64.zip" -OutFile "$tools\age.zip"
-(Get-FileHash "$tools\age.zip" -Algorithm SHA256).Hash.ToLower() -eq "f48d8f8f9ebe903ab5027ed067652f2cc1db94bc206976430133b905dcd8e8c7"   # must be True
-Expand-Archive "$tools\age.zip" $tools -Force; Remove-Item "$tools\age.zip"
-& "$tools\age\age-keygen.exe" -o "$HOME\.age\finsight-review.key"   # prints your public key (age1...)
-icacls "$HOME\.age\finsight-review.key" /inheritance:r /grant:r "${env:USERNAME}:R" | Out-Null
+$identity = "<private folder>\finsight-review.key"
+age-keygen -o $identity   # prints your public key (age1...)
+icacls $identity /inheritance:r /grant:r "${env:USERNAME}:R" | Out-Null
 ```
 
 `age-keygen` prints "Public key: age1..." and a "world-readable" warning; the warning is expected,
 and the `icacls` line then makes the file readable by you only. To replace the key later, first
-run `icacls <file> /grant:r "${env:USERNAME}:F"`. Keep `finsight-review.key` only on this
+run `icacls <file> /grant:r "${env:USERNAME}:F"`. Keep the identity file only on your own
 computer, and back it up offline. Give only the `age1...` public key for `PLAN_REVIEW_RECIPIENT`.
+To check which public key a file holds, run `age-keygen -y <file>`; it prints only the public key.
 
 **For each run waiting for approval:**
 1. Open the run. Note the run ID (in the URL) and the attempt, then read the summary table
@@ -408,10 +414,12 @@ computer, and back it up offline. Give only the `age1...` public key for `PLAN_R
    gh run download $run --repo Fer-as/finsight-eks-data-platform --name "terraform-plan-review-$run-$attempt" --dir $dir
    (Get-FileHash "$dir\platform-plan-review.txt.age" -Algorithm SHA256).Hash.ToLower()   # must equal "Encrypted review copy SHA-256"
    ```
-3. Decrypt to the screen only. Nothing in plaintext is written to disk:
+3. Decrypt to the screen only. Nothing in plaintext is written to disk. Set `$identity` to the
+   path of your reviewer identity file first:
 
    ```powershell
-   & "$HOME\tools\age\age.exe" --decrypt --identity "$HOME\.age\finsight-review.key" "$dir\platform-plan-review.txt.age" | Out-Host -Paging
+   $identity = "<path to your reviewer identity file>"
+   age --decrypt --identity $identity "$dir\platform-plan-review.txt.age" | Out-Host -Paging
    ```
 4. Check that the header's run, attempt, commit, state key, **plan SHA-256** and changes SHA-256
    equal the summary table. Then review every change.

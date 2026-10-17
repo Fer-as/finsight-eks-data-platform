@@ -4,6 +4,11 @@ Review date: 13 October 2026, updated 14 October 2026. This record covers the re
 preflight, a review of the three Terraform roots and the ordered plan procedure. Account IDs,
 ARNs, zone and principal names are deliberately omitted from this tracked file.
 
+**Current status, 17 October 2026.** The platform root was applied on 16 October 2026 from a
+reviewed saved plan (68 resources), with `m7i-flex.large` nodes instead of the `m7i.large`
+reviewed below (same CPU, memory and ENI limits). The table below is the 14 October record.
+Live evidence is indexed in [docs/screenshots](../screenshots/README.md).
+
 ## Deployment status (14 October 2026)
 
 | Step | Status |

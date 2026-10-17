@@ -6,6 +6,11 @@ checks were run the same day with approved read-only AWS CLI calls; results are 
 below and in the [deployment readiness record](deployment-readiness.md). No AWS resource was
 created or changed, and no live backend was used.
 
+**Note, 17 October 2026.** The node group was later changed to `m7i-flex.large` and deployed on
+16 October. A read-only `describe-instance-types` check shows the same profile as `m7i.large`
+(x86_64, Nitro, 2 vCPU, 8 GiB, 3 ENIs with 10 IPv4 each). The checks below were recorded for
+`m7i.large` and are kept as recorded.
+
 | Component | Decision / evidence |
 |---|---|
 | Terraform | 1.16.2, official Windows AMD64 package SHA-256 verified; this is a deliberate pin, not a claim of latest |

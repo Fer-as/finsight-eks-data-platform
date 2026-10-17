@@ -5,34 +5,34 @@ awarded here. The criteria, evidence and verification for each category live in 
 [master acceptance checklist](reviewer-acceptance-checklist.md); this tracker is the summary
 and must agree with it.
 
-Current status, 14 October 2026. Task board (public): https://github.com/users/Fer-as/projects/2
+Current status, 17 October 2026. Task board (public): https://github.com/users/Fer-as/projects/2
 
 | ID | Official category | Points | Status | Evidence so far | Main gaps |
 |---|---|---:|---|---|---|
-| G01 | Board / Tickets | 10 | In progress | [Board](https://github.com/users/Fer-as/projects/2) (public) with 31 issues; retrospective #3 closed after verification; PRs [#33](https://github.com/Fer-as/finsight-eks-data-platform/pull/33) and [#35](https://github.com/Fer-as/finsight-eks-data-platform/pull/35) merged and closed #5 and #6 | Dated screenshots; continued use |
-| G02 | Terraform for AWS Infrastructure | 15 | In progress | Modules validated (3/3 roots, 32/32 tests); bootstrap and foundation applied with S3 state and native locking; DNS roles merged (#6); security groups defined and tested (#7, PR [#36](https://github.com/Fer-as/finsight-eks-data-platform/pull/36); runtime check in #30); load balancer controller role defined and tested locally (#34); Checkov 181 passed / 0 failed / 16 documented exceptions (includes test fixtures) | Platform (VPC, EKS, nodes) not applied; CI apply role (#8) |
-| G03 | NGINX Ingress Controller | 10 | In progress | F5 NGINX Ingress Controller 5.6.3 (chart 2.7.3) values, Argo CD Application and FinSight host/path Ingress chart implemented; helm lint/template and kubeconform (Kubernetes 1.36) pass; not deployed (assessor acceptance of F5 NGINX pending) | Live install, NLB evidence, curl routing/404/redirect evidence, production frontend image, Argo CD |
-| G04 | CertManager and ExternalDNS | 20 | In progress | Public hosted zone; Pod Identity roles in Terraform; cert-manager v1.21.2, DNS-01 ClusterIssuers, ExternalDNS 1.23.0 (v0.23.0) and Ingress TLS implemented; helm/kubeconform and record-name/IAM checks pass; not deployed | Live install, DNS-01 issuance, renewal, Route 53 lifecycle (removal needs policy sync), HTTPS evidence |
-| G05 | Monitoring Setup | 15 | In progress | kube-prometheus-stack 91.8.2 (Grafana 13.2.4) via Argo CD; NGINX latency metrics; FinSight API metrics endpoint, ServiceMonitor, alert rules and dashboard; runbook; 41 offline tests pass (rules, PromQL, sizing); not installed | Live install, targets UP, dashboards with live data under traffic, failed default login; image with the instrumented API |
-| G06 | Pipeline 1: Terraform | 10 | In progress | Plan-only and apply OIDC roles, scoped apply policies and workload boundary applied (#8); both environments protected; `main` ruleset; PR checks + OIDC plan workflow merged with a passing first run (#10, plan skipped by the compatibility gate); approval-gated encrypted-plan apply workflow written and synthetically tested (#11, not run) | Real OIDC plan (compatibility gate), age keys and environment additions, first apply runs, passing/failing run evidence |
-| G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | In progress | Production images and app.yml pipeline (tests with PostgreSQL, Checkov TF/Docker/K8s, matrix build, Trivy gate, OIDC ECR publish, GitOps PR). Protected dev-images environment configured; run 38761479287 (attempt 2, main 6e77c47) passed all 8 jobs, published api/frontend/etl to ECR by commit SHA and opened GitOps PR #46 (image-tags.yaml digests), merged 15 Oct | Evidence capture (run and ECR screenshots), deliberate failing and Trivy-blocked runs (G07.8), Argo CD rollout on EKS (G07.6) |
-| G08 | ArgoCD GitOps | 15 | In progress | Argo CD 3.5.4 (chart 10.9.7) values, app-of-apps root with sync waves and in-cluster value injection, Applications for load balancer controller, cert-manager, ClusterIssuers, NGINX, ExternalDNS and FinSight (consumes image-tags.yaml with published digests; in-cluster PostgreSQL with Argo CD init hook); Secret script; runbook; 50 offline GitOps tests pass; not installed | Live install, admin secret rotation, Synced/Healthy, Git-triggered sync, drift and rollback evidence |
-| G09 | Architecture Design | 10 | In progress | Editable draw.io source (3 pages, AWS/Kubernetes shapes, 7 flows on layers, legend, trust boundaries) and PNGs exported from it; README embeds the overview | Owner and assessor review; commit/PR |
+| G01 | Board / Tickets | 10 | In progress | [Board](https://github.com/users/Fer-as/projects/2) (public) with 31 issues; retrospective #3; PRs close their issues; [board snapshot](screenshots/board/github-project-board-current.png) of 17 October 2026 | Card statuses to reconcile; dated start and middle snapshots were not captured (G01.5) |
+| G02 | Terraform for AWS Infrastructure | 15 | In progress | Modules validated; all three roots applied with S3 state and native locking; platform applied 16 October 2026 from a reviewed saved plan (68 resources); cluster, node group and five add-ons ACTIVE, two `m7i-flex.large` nodes Ready in two AZs ([evidence](screenshots/README.md#g02-terraform-and-eks)) | Subnet/route, IAM and security-group listings; instance IMDSv2 and root-encryption checks (G02.1-G02.4) |
+| G03 | NGINX Ingress Controller | 10 | In progress | F5 NGINX 5.6.3 (chart 2.7.3) via Argo CD behind an internet-facing NLB; `/` and `/api` routing, 301 redirect and 404 verified live | NLB subnets compared with the public subnets (G03.2); assessor acceptance of F5 NGINX (R6.4) |
+| G04 | CertManager and ExternalDNS | 20 | In progress | cert-manager v1.21.2: staging then production certificate, Ready and trusted; ExternalDNS 1.23.0 manages the A, AAAA and TXT records; HTTPS live at eks.feras-dev.co.uk | Forced renewal (G04.3); record update and removal (G04.5) |
+| G05 | Monitoring Setup | 15 | In progress | kube-prometheus-stack 91.8.2 via Argo CD; targets UP including the API and NGINX; FinSight dashboard with live data; default Grafana login rejected | Node, namespace and service dashboard screenshots (G05.2) |
+| G06 | Pipeline 1: Terraform | 10 | In progress | PR checks and OIDC plans (runs 38892240555, 38896532913); protected apply of a reviewed, encrypted saved plan (run 38901260888) | A deliberate failing run (G06.6) |
+| G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | In progress | Run 38761479287: tests, Checkov, matrix build, Trivy gate, OIDC ECR publish and GitOps PR #46; deployed digests match ECR | Failing-test and Trivy-blocked runs (G07.8) |
+| G08 | ArgoCD GitOps | 15 | Verified | Eight Applications Synced and Healthy; automated sync from merges; self-heal demonstrated; initial admin Secret removed | None recorded |
+| G09 | Architecture Design | 10 | In progress | Editable draw.io source (3 pages) and PNG exports; status banner updated 17 October 2026; embedded in the README | Assessor review |
 | | **Total** | **135** | | | |
 
 Additional project requirements:
 
 | Requirement | Status / evidence still needed |
 |---|---|
-| Original financial application using synthetic data | Day 1 implemented and verified locally (checklist F1-F3) |
-| Genuine ETL and ELT | ETL verified locally; ELT/dbt not started (F5) |
-| HTTPS at eks.<domain> or eks.labs.<domain> | Hostname configured; DNS, certificate and HTTPS test pending (G04.6) |
-| EKS 1.36 STANDARD and managed add-ons | All five add-on pins set to the verified London defaults (14 October 2026); platform not applied |
-| Two private m7i.large workers | In Terraform; readiness and AZ placement to be observed after deployment (G02.7) |
+| Original financial application using synthetic data | Implemented and verified locally (F1-F3); running on EKS since 16 October 2026 |
+| Genuine ETL and ELT | ETL runs as the in-cluster init Job loading PostgreSQL; ETL to S3 (F4) and ELT/dbt (F5) not started |
+| HTTPS at eks.<domain> or eks.labs.<domain> | Live at https://eks.feras-dev.co.uk with a Let's Encrypt production certificate (G04.6) |
+| EKS 1.36 STANDARD and managed add-ons | Applied 16 October 2026; five add-ons ACTIVE |
+| Two private workers | Two `m7i-flex.large` nodes Ready, one in each of eu-west-2a and eu-west-2b (G02.7) |
 | Secure retained storage/state | State, access-log and data buckets applied and verified 14 October 2026; bootstrap state migrated to S3 |
-| $50 budget awareness | Costs re-estimated; budget alert is account-wide and not a cap; teardown runbook documented |
+| $50 budget awareness | Costs re-estimated for `m7i-flex.large`; budget alert is account-wide and not a cap; teardown pending (R12) |
 
-Evidence: [master checklist](reviewer-acceptance-checklist.md),
+Evidence: [evidence index](screenshots/README.md), [master checklist](reviewer-acceptance-checklist.md),
 [Day 1](evidence/day1-verification.md),
 [Day 2 local validation](evidence/day2-terraform-validation.md),
 [Day 2 AWS bootstrap and foundation](evidence/day2-aws-bootstrap-foundation.md),

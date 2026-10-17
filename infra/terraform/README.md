@@ -1,8 +1,11 @@
-# FinSight infrastructure (Day 2)
+# FinSight infrastructure
 
-Bootstrap and foundation were applied on 14 October 2026; the platform remains local code
-only. The working Day 1 application is unchanged. See [deployment evidence](../../docs/evidence/day2-aws-bootstrap-foundation.md)
-and the [controller review](../../docs/infrastructure/load-balancer-controller.md).
+Bootstrap and foundation were applied on 14 October 2026. The platform root was applied on
+16 October 2026 from a reviewed saved plan (68 resources); a later tag-only change went through
+the protected apply workflow ([run 38901260888](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/38901260888)).
+See the [platform evidence](../../docs/screenshots/eks/2026-10-16-eks-deployment.md), the
+[bootstrap and foundation record](../../docs/evidence/day2-aws-bootstrap-foundation.md) and the
+[controller review](../../docs/infrastructure/load-balancer-controller.md).
 
 ## Structure and ownership
 

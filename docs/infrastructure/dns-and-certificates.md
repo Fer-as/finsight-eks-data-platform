@@ -87,16 +87,18 @@ upgrading.
 - **AWS Load Balancer Controller role: [#34](https://github.com/Fer-as/finsight-eks-data-platform/issues/34).** Originally part of #6 and
   moved to its own issue. Now defined in Terraform from AWS's published v3.6.0 policy, pinned
   and scoped to this cluster, with no Route 53 permissions; see
-  [load-balancer-controller.md](load-balancer-controller.md). Not yet applied.
+  [load-balancer-controller.md](load-balancer-controller.md). Applied with the platform root on 16 October 2026.
 - **Controllers.** ExternalDNS (#22), cert-manager (#21) and NGINX (#20) are installed by the
-  Argo CD root Application (G08, [argocd.md](argocd.md)), not yet run. The Pod Identity associations exist before the pods; the controllers
+  Argo CD root Application (G08, [argocd.md](argocd.md)), installed on 16 October 2026. The Pod Identity associations exist before the pods; the controllers
   must use exactly the namespaces and service accounts above.
 - **Apply.** These roles are created with the platform root. The expected platform plan grows
   by 6 resources (two roles, two inline policies, two associations).
 
 ## Implementation (G04, issues #21 and #22)
 
-Status, 15 October 2026: **implemented locally and validated offline; not deployed.**
+Status: **deployed on 16 October 2026** and verified live. The production certificate is Ready
+and ExternalDNS manages the A, AAAA and TXT records ([evidence](../screenshots/README.md#g04-cert-manager-and-externaldns)).
+A forced renewal (G04.3) and the record lifecycle (G04.5) have not been demonstrated yet.
 
 | Component | Pin | Files |
 |---|---|---|

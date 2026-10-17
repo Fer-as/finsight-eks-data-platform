@@ -1,8 +1,8 @@
 # AWS Load Balancer Controller identity
 
 Decision record, 14 October 2026 (issue #34). Terraform defines the controller's IAM role and Pod
-Identity association only; nothing has been applied and the controller is not installed. The
-Helm install belongs to #20.
+Identity association only. The role was applied with the platform root on 16 October 2026, and
+the controller runs as an Argo CD Application (wave 1).
 
 ## Version
 

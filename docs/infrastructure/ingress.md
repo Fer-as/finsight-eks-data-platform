@@ -1,7 +1,8 @@
 # Ingress: F5 NGINX Ingress Controller (G03, issue #20)
 
-Status, 15 October 2026: **implemented locally and validated offline; not deployed.** The
-EKS platform is currently destroyed, so there is no live evidence yet.
+Status: **deployed on 16 October 2026** through Argo CD and verified live. HTTP redirects to
+HTTPS, and unknown paths return 404 ([evidence](../screenshots/README.md#g03-nginx-ingress)).
+Assessor acceptance of F5 NGINX (R6.4) is still pending.
 
 ## Versions
 
@@ -72,7 +73,7 @@ seccomp, and no service-account token. The API probes are `/api/health/ready` an
 - **Argo CD (G08)** for the managed install that G03.1 asks for: see [argocd.md](argocd.md). A
   manual `helm` install of the same pinned chart and values remains possible for debugging.
 
-## Deployment sequence (later, needs the platform deployed and approval)
+## Deployment sequence
 
 ```powershell
 # 0. Platform applied by a human; kubectl context = finsight-dev via the eks-admin role.
