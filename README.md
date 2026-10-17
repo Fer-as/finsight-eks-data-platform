@@ -7,7 +7,7 @@ is the platform around it:
 - Terraform split into three roots with remote state;
 - GitHub Actions pipelines that use OIDC instead of stored AWS keys;
 - Terraform applies that run only after an approved, encrypted saved plan;
-- Argo CD managing everything that runs in the cluster.
+- Argo CD deploying and reconciling the application and Kubernetes platform services.
 
 **Live:** <https://eks.feras-dev.co.uk>. It uses synthetic GBP data only.
 
@@ -52,8 +52,8 @@ Verified on 16–17 October 2026:
 
 The cluster is a development environment. To control cost, I can destroy the `platform` Terraform
 root (VPC, NAT gateway, EKS and nodes) and keep `bootstrap` and `foundation`, which hold the state, the
-images and the CI identity. If the live URL stops responding, the platform has been torn down; this
-table records what was verified while it was running.
+images and the CI identity. The development platform can be torn down to control costs. The table above
+records the deployment state verified on 16–17 October 2026.
 
 ## Infrastructure (Terraform)
 
