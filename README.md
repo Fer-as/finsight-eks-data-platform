@@ -50,10 +50,10 @@ Verified on 16–17 October 2026:
 | Application | API, frontend and PostgreSQL running; images pulled from ECR by digest |
 | Monitoring | Prometheus scrape targets up, including the API and NGINX; FinSight dashboard in Grafana |
 
-The cluster is a development environment. To control cost, I can destroy the `platform` Terraform
-root (VPC, NAT gateway, EKS and nodes) and keep `bootstrap` and `foundation`, which hold the state, the
-images and the CI identity. The development platform can be torn down to control costs. The table above
-records the deployment state verified on 16–17 October 2026.
+The cluster is a development environment. I can destroy the `platform` Terraform root (VPC, NAT
+gateway, EKS and nodes) to control costs while retaining `bootstrap` and `foundation` for Terraform
+state, container images and CI identity. The table above records the deployment state verified on
+16–17 October 2026.
 
 ## Infrastructure (Terraform)
 
