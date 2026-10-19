@@ -1,8 +1,9 @@
 # Bootstrap, deployment and teardown runbook
 
-**Nothing in the AWS sections below is authorized to execute yet.** This is the future
-operating procedure, not a record of commands run. No apply, destroy, backend connection,
-AWS CLI or Kubernetes command was executed during Day 2.
+**This runbook authorizes no new AWS or Kubernetes changes.** It documents the operating
+procedure and records where it has been carried out; every step still needs its own owner
+approval each time it is run. When it was first written (Day 2), no apply, destroy, backend
+connection, AWS CLI or Kubernetes command had been executed.
 
 Status on 14 October 2026: bootstrap and foundation were applied and bootstrap state was
 migrated to S3, each with separate owner approval; see the
@@ -133,7 +134,11 @@ ETL identity association. Controller and worker resource failures may leave bill
 resources; inspect the state and approved inventory before retrying or tearing down.
 Never blindly re-run apply with a different account/config.
 
-## 5. Deployment verification (not yet run)
+## 5. Deployment verification (carried out 16–18 October 2026)
+
+These read-only checks were run on 16 October 2026 (cluster, node group, add-ons, nodes Ready)
+and 18 October 2026 (network, ENIs, root-volume encryption, IMDSv2, IAM, security groups and the
+NLB). See the [evidence](../screenshots/README.md#g02-terraform-and-eks).
 
 With the approved admin role and an allowed API source address:
 
@@ -159,12 +164,17 @@ ASG balancing before making resilience claims; do not arbitrarily terminate node
 Verify worker ENIs have no public IP, root volumes are encrypted, IMDSv2 is required,
 API public CIDRs match the intended allowlist and STANDARD support is configured.
 Verify outbound ECR/EKS Auth and S3 paths and test workload identity using a later authorized
-test pod. Do not open API access to 0.0.0.0/0 to make a runner work.
+test pod. Do not open API access to 0.0.0.0/0 to make a runner work. ECR image pulls and the
+Pod Identity roles of the load balancer controller, ExternalDNS and cert-manager have worked in
+practice. An S3 access test with the ETL role has not been run, because the S3 ETL is still
+planned.
 
-Capture redacted plan/resource/health evidence. Later, separately approved work installs the
-AWS Load Balancer Controller, F5 NGINX (subject to assessor acceptance), CertManager,
-ExternalDNS, monitoring, ArgoCD and application charts. Provisioning EKS alone does not
-complete the HTTPS application or assessment.
+Capture redacted plan/resource/health evidence. After the platform apply on 16 October 2026,
+Argo CD was installed with Helm and then deployed the AWS Load Balancer Controller, F5 NGINX,
+cert-manager, ExternalDNS, monitoring and the FinSight chart, each step separately approved
+([argocd.md](argocd.md)).
+Assessor acceptance of F5 NGINX (R6.4) is still pending. Provisioning EKS alone does not complete
+the HTTPS application or assessment.
 
 ## 6. Precise teardown sequence
 
