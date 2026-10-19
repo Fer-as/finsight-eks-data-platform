@@ -6,8 +6,9 @@ AWS CLI or Kubernetes command was executed during Day 2.
 
 Status on 14 October 2026: bootstrap and foundation were applied and bootstrap state was
 migrated to S3, each with separate owner approval; see the
-[deployment readiness record](deployment-readiness.md). The platform root has not been
-deployed, and every remaining step below still needs its own approval. Quote every
+[deployment readiness record](deployment-readiness.md). At that date the platform root had not
+been deployed. It was applied on 16 October 2026 from a reviewed saved plan
+([evidence](../screenshots/README.md#g02-terraform-and-eks)). Every remaining step below still needs its own approval. Quote every
 `-flag=value` argument when running these commands in Windows PowerShell 5.1.
 
 ## 1. Local preparation and review

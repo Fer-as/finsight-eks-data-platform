@@ -197,11 +197,12 @@ for G05.
   node-to-node traffic inside the cluster security group.
 - Actual memory use under load.
 
-## Live evidence outstanding
+## Live evidence
 
 Captured on 16-17 October 2026 ([evidence](../screenshots/README.md#g05-monitoring)): monitoring
 pods Running (G05.1), targets UP including FinSight and NGINX (R4.3), NGINX and API panels with
 live data (G05.3, G05.4), and the failed default login (G05.5).
 
-Still outstanding:
-- Node, namespace and service dashboard screenshots with live data (G05.2, R4.4).
+Captured on 19 October 2026, after the Grafana memory fix in PR #57: node, cluster and namespace,
+FinSight pod and service-overview dashboards with live data (G05.2, R4.4). Some service-overview
+panels show "No data"; see the [evidence index](../screenshots/README.md#g05-monitoring).

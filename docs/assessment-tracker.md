@@ -5,15 +5,15 @@ awarded here. The criteria, evidence and verification for each category live in 
 [master acceptance checklist](reviewer-acceptance-checklist.md); this tracker is the summary
 and must agree with it.
 
-Current status, 17 October 2026. Task board (public): https://github.com/users/Fer-as/projects/2
+Current status, 19 October 2026. Task board (public): https://github.com/users/Fer-as/projects/2
 
 | ID | Official category | Points | Status | Evidence so far | Main gaps |
 |---|---|---:|---|---|---|
 | G01 | Board / Tickets | 10 | In progress | [Board](https://github.com/users/Fer-as/projects/2) (public) with 31 issues; retrospective #3; PRs #33 and #35 closed linked issues; board statuses being reconciled; [board snapshot](screenshots/board/github-project-board-current.png) of 17 October 2026 | Card statuses to reconcile; dated start and middle snapshots were not captured (G01.5) |
-| G02 | Terraform for AWS Infrastructure | 15 | In progress | Modules validated; all three roots applied with S3 state and native locking; platform applied 16 October 2026 from a reviewed saved plan (68 resources); cluster, node group and five add-ons ACTIVE, two `m7i-flex.large` nodes Ready in two AZs ([evidence](screenshots/README.md#g02-terraform-and-eks)) | Subnet/route, IAM and security-group listings; instance IMDSv2 and root-encryption checks (G02.1-G02.4) |
-| G03 | NGINX Ingress Controller | 10 | In progress | F5 NGINX 5.6.3 (chart 2.7.3) via Argo CD behind an internet-facing NLB; `/` and `/api` routing, 301 redirect and 404 verified live | NLB subnets compared with the public subnets (G03.2); assessor acceptance of F5 NGINX (R6.4) |
+| G02 | Terraform for AWS Infrastructure | 15 | In progress | Modules validated; all three roots applied with S3 state and native locking; platform applied 16 October 2026 from a reviewed saved plan (68 resources); cluster, node group and five add-ons ACTIVE, two `m7i-flex.large` nodes Ready in two AZs ([evidence](screenshots/README.md#g02-terraform-and-eks)) | Line-by-line comparison of IAM policy statements with the documented scope (G02.3); network, nodes and security groups verified 18 October 2026 ([evidence](screenshots/eks/2026-10-18-network-iam-security-verification.md)) |
+| G03 | NGINX Ingress Controller | 10 | Verified | F5 NGINX 5.6.3 (chart 2.7.3) via Argo CD behind an internet-facing NLB; `/` and `/api` routing, 301 redirect and 404 verified live | Assessor acceptance of F5 NGINX (R6.4, a reviewer item) |
 | G04 | CertManager and ExternalDNS | 20 | In progress | cert-manager v1.21.2: staging then production certificate, Ready and trusted; ExternalDNS 1.23.0 manages the A, AAAA and TXT records; HTTPS live at eks.feras-dev.co.uk | Forced renewal (G04.3); record update and removal (G04.5) |
-| G05 | Monitoring Setup | 15 | In progress | kube-prometheus-stack 91.8.2 via Argo CD; targets UP including the API and NGINX; FinSight dashboard with live data; default Grafana login rejected | Node, namespace and service dashboard screenshots (G05.2) |
+| G05 | Monitoring Setup | 15 | Verified | kube-prometheus-stack 91.8.2 via Argo CD; targets UP including the API and NGINX; default Grafana login rejected; live node, namespace, pod and service dashboards on 19 October 2026 after the Grafana memory fix (PR #57) | None recorded |
 | G06 | Pipeline 1: Terraform | 10 | In progress | PR checks and OIDC plans (runs 38892240555, 38896532913); protected apply of a reviewed, encrypted saved plan (run 38901260888) | A deliberate failing run (G06.6) |
 | G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | In progress | Run 38761479287: tests, Checkov, matrix build, Trivy gate, OIDC ECR publish and GitOps PR #46; deployed digests match ECR | Failing-test and Trivy-blocked runs (G07.8) |
 | G08 | ArgoCD GitOps | 15 | Verified | Eight Applications Synced and Healthy; automated sync from merges; self-heal demonstrated; initial admin Secret removed | None recorded |
@@ -30,6 +30,7 @@ Additional project requirements:
 | EKS 1.36 STANDARD and managed add-ons | Applied 16 October 2026; five add-ons ACTIVE |
 | Two private workers | Two `m7i-flex.large` nodes Ready, one in each of eu-west-2a and eu-west-2b (G02.7) |
 | Secure retained storage/state | State, access-log and data buckets applied and verified 14 October 2026; bootstrap state migrated to S3 |
+| Final demo video (R3.1-R3.3) | Not complete; no video is published in the repository |
 | $50 budget awareness | Costs re-estimated for `m7i-flex.large`; budget alert is account-wide and not a cap; teardown pending (R12) |
 
 Evidence: [evidence index](screenshots/README.md), [master checklist](reviewer-acceptance-checklist.md),

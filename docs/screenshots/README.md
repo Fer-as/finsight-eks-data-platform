@@ -1,6 +1,6 @@
 # Evidence
 
-Evidence from the live FinSight deployment in eu-west-2 and its GitHub Actions runs, captured on 14–17
+Evidence from the live FinSight deployment in eu-west-2 and its GitHub Actions runs, captured on 14–19
 October 2026. It has two forms:
 - screenshots;
 - command-output notes (`*.md`), which record the exact commands and their results.
@@ -37,6 +37,7 @@ middle and end snapshots (G01.5) were not captured.
 | [eks-node-group-details.png](eks/eks-node-group-details.png) | Managed node group Active: `m7i-flex.large`, 2 nodes (min 2, max 3), on-demand, remote access off | Deployment |
 | [eks-five-addons-active.png](eks/eks-five-addons-active.png) | EBS CSI driver, Pod Identity Agent, VPC CNI, CoreDNS and kube-proxy all Active | Deployment |
 | [2026-10-16-eks-deployment.md](eks/2026-10-16-eks-deployment.md) | Terraform apply of the platform root (68 resources); `kubectl` shows two nodes Ready in eu-west-2a and eu-west-2b | Deployment |
+| [2026-10-18-network-iam-security-verification.md](eks/2026-10-18-network-iam-security-verification.md) | Read-only live checks (18 October 2026): subnets, routes, NAT, S3 endpoint and flow logs; private nodes without public IPs, IMDSv2 and encrypted gp3 volumes; IAM roles with policy names, boundaries and trust (statements not compared line by line); every security-group rule | Deployment |
 
 ## G03 NGINX Ingress
 
@@ -44,6 +45,7 @@ middle and end snapshots (G01.5) were not captured.
 |---|---|---|
 | [http-redirect-and-404.png](app/http-redirect-and-404.png) | HTTP returns `301` to HTTPS from NGINX; unknown frontend and API paths return `404` | Safety control |
 | [2026-10-16-nlb-verification.md](app/2026-10-16-nlb-verification.md) | Application reached through the internet-facing NLB and NGINX Ingress Controller | Deployment |
+| [2026-10-18-network-iam-security-verification.md](eks/2026-10-18-network-iam-security-verification.md#g032-load-balancer-and-workload-placement) | NLB in exactly the two public subnets, IP targets healthy; FinSight and NGINX pods on private nodes | Deployment |
 
 ## G04 cert-manager and ExternalDNS
 
@@ -62,6 +64,7 @@ middle and end snapshots (G01.5) were not captured.
 | [prometheus-nginx-targets.png](monitoring/prometheus-nginx-targets.png) | Prometheus targets UP: NGINX controller, node-exporter, kube-state-metrics | Deployment |
 | [grafana-default-login-rejected.png](monitoring/grafana-default-login-rejected.png) | Grafana rejects the default `admin` password; credentials come from a Kubernetes Secret, and Grafana is reachable only by port-forward | Safety control |
 | [2026-10-16-g05-verification.md](monitoring/2026-10-16-g05-verification.md), [2026-10-16-prometheus-targets.md](monitoring/2026-10-16-prometheus-targets.md) | Install, target and alert-rule verification | Deployment |
+| [2026-10-18-g05-metrics-verification.md](monitoring/2026-10-18-g05-metrics-verification.md) | Prometheus queries (18 October 2026): 20 of 20 targets up; non-empty node, namespace and pod CPU and memory series | Deployment |
 | [g05-node-cpu-memory-2026-10-19.png](monitoring/g05-node-cpu-memory-2026-10-19.png) | *Node Exporter / Nodes*, last hour (UTC): CPU usage, load average, memory and disk for one worker node. The node's private address is redacted | Deployment |
 | [g05-cluster-cpu-memory-2026-10-19.png](monitoring/g05-cluster-cpu-memory-2026-10-19.png) | *Kubernetes / Compute Resources / Cluster*: cluster CPU and memory utilisation and commitments, with CPU and memory by namespace | Deployment |
 | [g05-finsight-pod-cpu-memory-2026-10-19.png](monitoring/g05-finsight-pod-cpu-memory-2026-10-19.png) | *Kubernetes / Compute Resources / Namespace (Pods)* for `finsight`: CPU and memory per pod (API, frontend, PostgreSQL) against requests and limits | Deployment |
@@ -127,4 +130,7 @@ dbt are shown as planned.
 - **G06.6:** a deliberate failing Terraform run, such as a rejected destructive plan. One unplanned
   failure is on record: [run 38887295294](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/38887295294)
   failed at `terraform init` because of a configuration encoding problem, which was then fixed.
+- **G02.3:** a line-by-line comparison of the IAM policy statements with the documented scope.
 - **G07.8:** failing application runs, where a failing test and a security finding each stop publishing.
+- **R3.1-R3.3:** the final demo video.
+- **R12:** platform teardown and the actual cost record.

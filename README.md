@@ -48,12 +48,12 @@ Verified on 16–17 October 2026:
 | GitOps | Eight Argo CD Applications (a root app and seven children), all Synced and Healthy |
 | Ingress, DNS and TLS | NGINX behind an NLB; ExternalDNS manages the Route 53 records; Let's Encrypt production certificate from cert-manager; HTTP redirects to HTTPS |
 | Application | API, frontend and PostgreSQL running; images pulled from ECR by digest |
-| Monitoring | Prometheus scrape targets up, including the API and NGINX; FinSight dashboard in Grafana |
+| Monitoring | Prometheus scrape targets up, including the API and NGINX; FinSight dashboard in Grafana. After OOMKilled restarts, Grafana's memory was raised on 19 October 2026 (PR #57) and its dashboards were re-checked the same day |
 
 The cluster is a development environment. I can destroy the `platform` Terraform root (VPC, NAT
 gateway, EKS and nodes) to control costs while retaining `bootstrap` and `foundation` for Terraform
 state, container images and CI identity. The table above records the deployment state verified on
-16–17 October 2026.
+16–17 October 2026, plus the Grafana recovery on 19 October 2026.
 
 ## Infrastructure (Terraform)
 
