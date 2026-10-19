@@ -1,8 +1,10 @@
 # Network security groups and traffic flows
 
-Decision record, 14 October 2026 (issue #7). Defined in Terraform and tested offline; **not
-applied**. The rules must be confirmed with `aws ec2 describe-security-groups` after the
-platform is deployed (see "Post-deployment verification").
+Decision record, 14 October 2026 (issue #7), written when the rules were defined in Terraform
+and tested offline. They were **applied** with the platform root on 16 October 2026 and
+**confirmed in AWS on 18 October 2026** with read-only `describe-security-groups` checks: the
+deployed rules match this design
+([evidence](../screenshots/eks/2026-10-18-network-iam-security-verification.md#g024-security-groups-every-group-in-the-vpc)).
 
 ## Design in one paragraph
 
@@ -128,8 +130,9 @@ security groups at creation time, so an NLB created without them would have to b
 - **Client IP preservation stays off** (the default for IP targets). Pods see the NLB's
   private address as the source, which is what the security-group reference matches. If the
   real client IP is needed, use proxy protocol v2, not client IP preservation, and re-test.
-- **Not yet observed in AWS.** The EKS-managed rules above are AWS's documented defaults and
-  must be confirmed after deployment.
+- **Observed in AWS on 18 October 2026.** The EKS-managed rules matched AWS's documented
+  defaults (inbound from the group itself, all outbound), plus the Terraform rule from the NLB
+  group.
 
 ## Post-deployment verification
 
@@ -141,6 +144,12 @@ aws ec2 describe-security-group-rules --region eu-west-2 --filters Name=group-id
 
 Record in `docs/evidence/` (redacted): the cluster group's self-reference and the three NLB
 rules; the public group's two inbound and six outbound rules; no other inbound source.
+
+Carried out on 18 October 2026, and recorded in
+[docs/screenshots/eks](../screenshots/eks/2026-10-18-network-iam-security-verification.md#g024-security-groups-every-group-in-the-vpc).
+The cluster group had the self-reference plus the NLB group's TCP 80, 443 and 8081 rules. The public
+group had TCP 80 and 443 from 0.0.0.0/0, and TCP 80, 443 and 8081 to the two private subnets only
+(six outbound rules). The VPC default group had no rules.
 
 ## Checkov
 
