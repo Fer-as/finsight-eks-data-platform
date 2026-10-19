@@ -1,7 +1,8 @@
 # Application pipeline (G07)
 
-Status, 15 October 2026: **implemented and tested locally; not yet run on GitHub; nothing
-published.** Workflow: `.github/workflows/app.yml`.
+Status: **in use on GitHub.** [Run 38761479287](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/38761479287)
+(15 October 2026) passed every job, published the api, frontend and etl images to ECR and opened
+GitOps PR #46; Argo CD deployed the merged digests. Workflow: `.github/workflows/app.yml`.
 
 ## Jobs
 
@@ -33,7 +34,7 @@ trigger workflows either.
 **Immutable tags.** The ECR repositories are `IMMUTABLE`. A re-run for the same commit reuses the
 existing tag and digest instead of pushing again.
 
-## Prerequisites (owner approval; none configured yet)
+## Prerequisites (all configured; checked 19 October 2026)
 
 1. **Environment `dev-images`.** The image role trusts only this environment's OIDC subject.
    - Deployment branches: `main` only.
@@ -45,7 +46,7 @@ existing tag and digest instead of pushing again.
    `publish` and `gitops` are skipped. This also stops GitHub auto-creating an unprotected
    `dev-images` environment on the first run on `main`.
 3. **Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests".**
-   This is currently **off**: `can_approve_pull_request_reviews=false`. Without it, `gitops` pushes
+   It is **on** (`can_approve_pull_request_reviews=true`, checked 19 October 2026). Without it, `gitops` pushes
    its branch and then fails with an explicit error; the pull request can be opened by hand from
    that branch.
 4. **Argo CD installed and bootstrapped** ([argocd.md](argocd.md)). The FinSight Application (implemented) uses `values.yaml` and `image-tags.yaml`, plus the
