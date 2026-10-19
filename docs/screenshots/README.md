@@ -62,6 +62,7 @@ middle and end snapshots (G01.5) were not captured.
 |---|---|---|
 | [finsight-grafana-dashboard.png](monitoring/finsight-grafana-dashboard.png) | FinSight dashboard with live data: API requests and latency by route, NGINX status codes and latency, pod CPU and memory | Deployment |
 | [prometheus-nginx-targets.png](monitoring/prometheus-nginx-targets.png) | Prometheus targets UP: NGINX controller, node-exporter, kube-state-metrics | Deployment |
+| [prometheus-targets-2026-10-16.png](monitoring/prometheus-targets-2026-10-16.png) | Prometheus *Target health*: the FinSight API target (`serviceMonitor/finsight/finsight-api`) 1/1 UP, with the Grafana, API server (2/2) and CoreDNS (2/2) targets UP. Endpoint addresses and `instance` labels are redacted | Deployment |
 | [grafana-default-login-rejected.png](monitoring/grafana-default-login-rejected.png) | Grafana rejects the default `admin` password; credentials come from a Kubernetes Secret, and Grafana is reachable only by port-forward | Safety control |
 | [2026-10-16-g05-verification.md](monitoring/2026-10-16-g05-verification.md), [2026-10-16-prometheus-targets.md](monitoring/2026-10-16-prometheus-targets.md) | Install, target and alert-rule verification | Deployment |
 | [2026-10-18-g05-metrics-verification.md](monitoring/2026-10-18-g05-metrics-verification.md) | Prometheus queries (18 October 2026): 20 of 20 targets up; non-empty node, namespace and pod CPU and memory series | Deployment |
