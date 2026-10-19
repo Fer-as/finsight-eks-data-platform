@@ -62,6 +62,11 @@ middle and end snapshots (G01.5) were not captured.
 | [prometheus-nginx-targets.png](monitoring/prometheus-nginx-targets.png) | Prometheus targets UP: NGINX controller, node-exporter, kube-state-metrics | Deployment |
 | [grafana-default-login-rejected.png](monitoring/grafana-default-login-rejected.png) | Grafana rejects the default `admin` password; credentials come from a Kubernetes Secret, and Grafana is reachable only by port-forward | Safety control |
 | [2026-10-16-g05-verification.md](monitoring/2026-10-16-g05-verification.md), [2026-10-16-prometheus-targets.md](monitoring/2026-10-16-prometheus-targets.md) | Install, target and alert-rule verification | Deployment |
+| [g05-node-cpu-memory-2026-10-19.png](monitoring/g05-node-cpu-memory-2026-10-19.png) | *Node Exporter / Nodes*, last hour (UTC): CPU usage, load average, memory and disk for one worker node. The node's private address is redacted | Deployment |
+| [g05-cluster-cpu-memory-2026-10-19.png](monitoring/g05-cluster-cpu-memory-2026-10-19.png) | *Kubernetes / Compute Resources / Cluster*: cluster CPU and memory utilisation and commitments, with CPU and memory by namespace | Deployment |
+| [g05-finsight-pod-cpu-memory-2026-10-19.png](monitoring/g05-finsight-pod-cpu-memory-2026-10-19.png) | *Kubernetes / Compute Resources / Namespace (Pods)* for `finsight`: CPU and memory per pod (API, frontend, PostgreSQL) against requests and limits | Deployment |
+| [g05-finsight-service-overview-2026-10-19.png](monitoring/g05-finsight-service-overview-2026-10-19.png) | *FinSight / Service overview*: API requests by route and p95 latency, ingress requests per second by Service, pod CPU and memory. The *API 5xx ratio* panel shows "No data" and the *Ingress p95 upstream latency by Service* panel is empty, so this screenshot does not show error rates or complete upstream latency | Deployment |
+| [2026-10-19-grafana-oom-recovery.md](monitoring/2026-10-19-grafana-oom-recovery.md) | Grafana OOMKilled restarts fixed by a GitOps memory change (PR #57) and the rollout verified | Deployment |
 
 ## G06 Terraform pipeline
 
