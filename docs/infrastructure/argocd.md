@@ -234,6 +234,18 @@ There is no RDS and no operator.
   (`/api/health/ready`) checks the database on every probe.
 - **Single replica.** The volume is zonal, so a pod moved to the other AZ cannot attach it until the
   node in its original AZ returns. This is an assessment compromise, not HA.
+
+### Writable paths under the read-only root filesystem
+
+Every FinSight container runs with `readOnlyRootFilesystem: true`. These are the only writable
+mounts, and why each exists:
+
+| Container | Writable mount | Reason |
+|---|---|---|
+| `frontend` (`nginx-unprivileged`) | `/tmp` (emptyDir) | The unprivileged NGINX image keeps its PID file and its client-body and proxy temporary files under `/tmp`, so NGINX cannot start without it |
+| `api` | `/tmp` (emptyDir) | Precautionary scratch space for the Python runtime and libraries; the API code itself writes no files |
+| `postgres` | `PGDATA` on the encrypted gp3 volume; `/var/run/postgresql` and `/tmp` (emptyDir) | Database files; the Unix socket and lock file; temporary files |
+| `db-init` (Job) | `/app/data` and `/tmp` (emptyDir) | The generator and ETL write raw CSV, curated Parquet and rejection files under `data/` before loading PostgreSQL; temporary files |
 - **Teardown.** `persistentVolumeClaimRetentionPolicy.whenDeleted: Delete` with `reclaimPolicy: Delete`:
   `argocd app delete finsight --cascade` removes the claim and the EBS volume. Confirm that
   `kubectl get pv` shows nothing left before `terraform destroy`.
