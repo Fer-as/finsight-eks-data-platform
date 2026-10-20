@@ -1,6 +1,6 @@
 module "config" { source = "../../../modules/config" }
 locals {
-  config = module.config.value
+  config   =   module.config.value
   # Created by the foundation root (issue #8); every platform role must carry it.
   permissions_boundary = "arn:aws:iam::${local.config.account_id}:policy/${module.config.name}-workload-boundary"
 }
