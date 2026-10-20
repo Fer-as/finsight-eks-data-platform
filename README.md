@@ -11,10 +11,13 @@ is the platform around it:
 - Terraform applies that run only after an approved, encrypted saved plan;
 - Argo CD deploying and reconciling the application and Kubernetes platform services.
 
-**Live:** <https://eks.feras-dev.co.uk>. It uses synthetic GBP data only.
+**Recorded deployment, 16–20 October 2026.** It ran at `eks.feras-dev.co.uk` and used synthetic GBP
+data only. I tore the platform down on 20 October 2026 to stop its running costs
+([teardown evidence](docs/evidence/2026-10-20-platform-teardown.md)); the state, data, images and CI
+identity are retained.
 
 - [Architecture](#architecture)
-- [Current deployment](#current-deployment)
+- [Recorded deployment](#recorded-deployment)
 - [Infrastructure (Terraform)](#infrastructure-terraform)
 - [Cluster platform (Argo CD)](#cluster-platform-argo-cd)
 - [CI/CD](#cicd)
@@ -42,9 +45,9 @@ A request travels:
 3. then to the frontend or API pods on worker nodes in private subnets;
 4. and finally to PostgreSQL, which runs in the cluster.
 
-## Current deployment
+## Recorded deployment
 
-Verified on 16–17 October 2026:
+Verified on 16–17 October 2026, and removed on 20 October 2026:
 
 | Area | State |
 |---|---|
@@ -171,7 +174,8 @@ in [Terraform CI](docs/infrastructure/terraform-ci.md).
 5. Opens a pull request that updates the image digests in GitOps. Argo CD deploys them once it is merged.
 
 [Run 38761479287](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/38761479287) built the
-images that are running now; they were deployed through GitOps PR #46. The pipeline is described in
+images that ran on the cluster until the 20 October 2026 teardown; they were deployed through GitOps
+PR #46. The pipeline is described in
 [application pipeline](docs/infrastructure/app-pipeline.md).
 
 ## Deploying from scratch

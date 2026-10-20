@@ -138,4 +138,5 @@ dbt are shown as planned. The diagram was independently re-verified on 19 Octobe
   2026, but a renewal has not been forced.
 - **G04.5:** DNS records updated or removed when the Ingress changes (before and after listings).
 - **R3.1-R3.3:** the final demo video.
-- **R12:** platform teardown and the actual cost record.
+- **R9.5, R12.4:** the runbook's billing recheck and the actual cost record, which need billing data 24–48 hours after the 20 October 2026
+  teardown ([teardown evidence](../evidence/2026-10-20-platform-teardown.md)).

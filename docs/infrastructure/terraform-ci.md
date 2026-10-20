@@ -3,7 +3,8 @@
 Decision record, 14 October 2026 (issue #8, Option A approved by the owner; independently
 reviewed and hardened the same day). Current state, 17 October 2026:
 - The foundation IAM is applied, and both GitHub environments and the `main` ruleset are configured.
-- The pull-request workflow (#10) plans the live platform with the plan-only role, for example
+- The pull-request workflow (#10) planned the live platform with the plan-only role until the
+  20 October 2026 teardown, for example
   [run 38896532913](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/38896532913)
   for PR #53.
 - The approval-gated apply workflow (#11) has applied one reviewed saved plan: a tag-only update
