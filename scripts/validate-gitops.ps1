@@ -61,8 +61,19 @@ try { & $renderer @sample -OutFile (Join-Path $cache "refused.yaml") -ImageTagsF
 if (-not $refused) { throw "The renderer did not refuse an image-tags.yaml without published digests." }
 Write-Host "Renderer: sample rendered; committed digests accepted; 4 invalid inputs refused."
 
+$junit = Join-Path $cache "junit.xml"
+Remove-Item -LiteralPath $junit -ErrorAction SilentlyContinue
 $command = "pip install --quiet --disable-pip-version-check --root-user-action=ignore pytest==9.1.1 PyYAML==6.0.3 " +
-    "&& PATH=/cache/bin:`$PATH python -m pytest -q -p no:cacheprovider tests/gitops"
+    "&& PATH=/cache/bin:`$PATH python -m pytest -q -rs -p no:cacheprovider --junitxml=/cache/junit.xml tests/gitops"
 docker run --rm -e PYTHONDONTWRITEBYTECODE=1 -e GITOPS_CACHE=/cache -e ROOT_RENDERED=/cache/root-application.yaml `
     -v "${repo}:/repo:ro" -v "${cache}:/cache" -w /repo $python sh -c $command
 if ($LASTEXITCODE -ne 0) { throw "GitOps tests failed." }
+
+# The test modules skip themselves when a tool is missing. Here every tool is provided, so a skip
+# means a check did not run: treat it, or an empty run, as a failure rather than a pass.
+if (-not (Test-Path -LiteralPath $junit)) { throw "No test report was written." }
+$suite = ([xml][IO.File]::ReadAllText($junit)).SelectSingleNode("//testsuite")
+$tests = [int]$suite.tests; $skipped = [int]$suite.skipped
+if ($tests -eq 0) { throw "No GitOps tests ran." }
+if ($skipped -gt 0) { throw "$skipped of $tests GitOps tests were skipped; every check must run." }
+Write-Host "GitOps tests: $tests passed, 0 skipped."

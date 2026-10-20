@@ -24,7 +24,7 @@ The pins for NGINX, cert-manager and ExternalDNS are unchanged; see [ingress.md]
 | `gitops/kustomization.yaml` | The child Applications the root manages |
 | `gitops/platform/*/application.yaml`, `gitops/apps/finsight/application.yaml` | One Application per component, each with its sync wave and sync policy |
 | `scripts/render-argocd-root.ps1` | Fills the root Application with this account's values into an ignored file |
-| `scripts/validate-gitops.ps1`, `tests/gitops/test_argocd.py` | Offline validation |
+| `scripts/validate-gitops.ps1`, `tests/gitops/test_argocd.py` | Offline validation, also run on pull requests by `.github/workflows/gitops.yml` |
 
 ## Design
 
