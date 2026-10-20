@@ -266,6 +266,29 @@ Repository **Settings → Environments**:
 Workflows reference role ARNs only as `${{ vars.AWS_ROLE_ARN }}`, from a job that names its
 environment explicitly. They never contain an `arn:aws` literal.
 
+## Checks on changes to the workflows
+
+`terraform-apply.yml` is started only by hand, so no pull request ever runs it. Changes to it, to any
+other workflow, to `.github/actions/` or to `scripts/ci/` are checked by
+`.github/workflows/workflows.yml`, which is read-only:
+- `scripts/check-workflows.py` enforces the workflow security policy and the deployment gates:
+  - apply is started only by `workflow_dispatch`;
+  - plan and apply each run only on `main`, behind `dev-infrastructure` and then
+    `dev-infrastructure-apply`, with apply after plan;
+  - the pull-request plan needs the checks and skips forks;
+  - publishing needs every test and scan, a push to `main`, `dev-images` and
+    `IMAGE_PUBLISHING_ENABLED == 'true'`.
+
+  Its `--self-test` mode applies 18 deliberate violations to copies of the workflows and fails
+  unless each is caught.
+- Checkov's GitHub Actions checks run on `.github/`.
+- `scripts/ci/tests/plan-protection.tests.ps1` exercises the scripts that encrypt, verify and refuse
+  plans, with synthetic fixtures and throwaway age keys.
+
+It does not run a plan and has no AWS credentials or OIDC token. The bootstrap, foundation and first
+platform applies were run by hand from reviewed saved plans. Later platform changes go through the
+approval-gated apply below, for example run 38901260888.
+
 ## Approval-gated apply (`.github/workflows/terraform-apply.yml`, issue #11)
 
 Written, independently reviewed and tested with synthetic fixtures. **First real run:**
