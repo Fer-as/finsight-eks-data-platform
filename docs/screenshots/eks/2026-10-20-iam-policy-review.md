@@ -13,7 +13,8 @@ numeric owner and repository IDs, and the administrator's IAM user name are repl
 
 ## Result by role
 
-85 statements in the inline and customer-managed policies were reviewed.
+85 statements in the inline and customer-managed policies were reviewed. The boundary and the
+AWS-managed policies are covered [below](#boundary-and-aws-managed-policies-read-20-october-2026).
 
 | Role | Boundary | Trust | Permissions (statements reviewed) |
 |---|---|---|---|
@@ -73,19 +74,34 @@ so a renamed or recreated repository cannot match them.
 - The roles created by the platform root carry the workload boundary. The GitHub roles and
   `eks-admin` are created by the foundation root, which does not apply it, as documented.
 
-## Not reviewed, so G02.3 stays In progress
+## Boundary and AWS-managed policies (read 20 October 2026)
 
-- **The `finsight-dev-workload-boundary` policy document.** The capture recorded which roles carry
-  the boundary, not the boundary's statements.
-- **The AWS-managed policy documents** attached to the cluster, node, VPC CNI and EBS CSI roles.
+After a new AWS session on 20 October 2026, I read the documents the 18 October capture did not contain:
+- **`finsight-dev-workload-boundary`** (version v1, used as the boundary of 9 roles): 12 statements, the
+  same Sids and actions as `modules/terraform-ci-policies/main.tf`.
+  - EC2, Elastic Load Balancing and Auto Scaling are allowed only in eu-west-2.
+  - Route 53 changes are allowed only in the FinSight zone; S3 only on the data bucket, with object
+    access under `raw/` and `curated/`.
+  - KMS use is allowed only through EC2 in eu-west-2.
+  - The only IAM actions are read-only server-certificate lookups and `CreateServiceLinkedRole` for
+    four named services. There is no `PassRole`, `AssumeRole` or IAM write, so no bounded role can
+    escalate beyond this ceiling.
+- **AWS-managed policies:**
 
-The AWS session had expired, so neither could be read on 20 October 2026. These read-only commands
-complete the review once a session is available:
+  | Policy | Version | Statements | Notes |
+  |---|---|---:|---|
+  | `AmazonEKSClusterPolicy` | v10 | 3 | Only IAM action: `CreateServiceLinkedRole` |
+  | `AmazonEKSWorkerNodePolicy` | v3 | 1 | No IAM actions |
+  | `AmazonEC2ContainerRegistryPullOnly` | v1 | 1 | Image pull only |
+  | `AmazonEKS_CNI_Policy` | v6 | 2 | No IAM actions |
+  | `AmazonEBSCSIDriverPolicyV2` | v1 | 13 | No IAM actions |
 
-```sh
-aws iam get-policy --policy-arn "arn:aws:iam::<acct>:policy/finsight-dev-workload-boundary"
-aws iam get-policy-version --policy-arn "arn:aws:iam::<acct>:policy/finsight-dev-workload-boundary" --version-id <default>
-for p in AmazonEKSClusterPolicy AmazonEKSWorkerNodePolicy AmazonEC2ContainerRegistryPullOnly AmazonEKS_CNI_Policy AmazonEBSCSIDriverPolicyV2; do
-  aws iam get-policy --policy-arn "arn:aws:iam::aws:policy/$p" --query Policy.DefaultVersionId
-done
-```
+  None of them allows `*`, `iam:*`, `s3:*` or `ec2:*`. For every platform role, the boundary also caps
+  what these policies can grant.
+
+The same session re-read every trust policy, boundary setting, inline policy and customer-managed
+policy version. All 26 documents were identical to the 18 October capture. No Terraform apply has run
+since 16 October 2026.
+
+G02.3 is verified: every trust policy, boundary, attached policy and inline statement of the 13 roles
+has been reviewed against Terraform and the documented scope.

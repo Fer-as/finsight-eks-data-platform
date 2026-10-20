@@ -90,8 +90,9 @@ of `arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy`.
   the policy choice does not depend on instance architecture, and no node-role change is
   needed. The node role still carries no EBS permissions.
 - The policy exists in the account's partition (default version v1, dated 16 April 2026). Its
-  statements were not reviewed line by line. Its contents are AWS-managed and can change
-  without a Terraform diff.
+  statements were reviewed on 20 October 2026 (13 statements, no IAM actions; see the
+  [IAM review](../screenshots/eks/2026-10-20-iam-policy-review.md)). Its contents are AWS-managed and
+  can change without a Terraform diff.
 
 Role and association, unchanged:
 

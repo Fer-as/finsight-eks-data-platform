@@ -41,7 +41,7 @@ recreated.
 | [2026-10-16-eks-deployment.md](eks/2026-10-16-eks-deployment.md) | Terraform apply of the platform root (68 resources); `kubectl` shows two nodes Ready in eu-west-2a and eu-west-2b | Deployment |
 | [2026-10-19-workload-security-check.md](eks/2026-10-19-workload-security-check.md) | Read-only check (19 October 2026) of every FinSight container: non-root UIDs, no privilege escalation, capabilities dropped, read-only root filesystem, requests and limits, probes; Argo CD initial admin Secret removed | Deployment |
 | [2026-10-18-network-iam-security-verification.md](eks/2026-10-18-network-iam-security-verification.md) | Read-only live checks (18 October 2026): subnets, routes, NAT, S3 endpoint and flow logs; private nodes without public IPs, IMDSv2 and encrypted gp3 volumes; IAM roles with policy names, boundaries and trust; every security-group rule | Deployment |
-| [2026-10-20-iam-policy-review.md](eks/2026-10-20-iam-policy-review.md) | Statement-level review (20 October 2026) of the 18 October IAM capture: all 13 roles' trust policies and 85 inline and customer-managed statements, compared with Terraform; the workload boundary and AWS-managed policy documents are not yet read | Safety control |
+| [2026-10-20-iam-policy-review.md](eks/2026-10-20-iam-policy-review.md) | Statement-level review (20 October 2026) of the 18 October IAM capture: all 13 roles' trust policies and 85 inline and customer-managed statements, compared with Terraform; the workload boundary and the five AWS-managed policies; all re-read live on 20 October 2026 and unchanged | Safety control |
 
 ## G03 NGINX Ingress
 
@@ -137,7 +137,5 @@ dbt are shown as planned. The diagram was independently re-verified on 19 Octobe
 - **G04.3:** a demonstrated certificate renewal. cert-manager has scheduled renewal for 15 December
   2026, but a renewal has not been forced.
 - **G04.5:** DNS records updated or removed when the Ingress changes (before and after listings).
-- **G02.3:** the workload boundary and AWS-managed policy documents. The other IAM statements were
-  reviewed on 20 October 2026 ([IAM review](eks/2026-10-20-iam-policy-review.md)).
 - **R3.1-R3.3:** the final demo video.
 - **R12:** platform teardown and the actual cost record.
