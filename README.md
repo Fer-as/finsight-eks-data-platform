@@ -1,7 +1,9 @@
 # FinSight on Amazon EKS
 
 FinSight is a financial reporting application (React, FastAPI, PostgreSQL and a Pandas ETL) that I
-deployed to Amazon EKS in eu-west-2. The application is intentionally small. The work in this repository
+deployed to Amazon EKS in eu-west-2. Its dashboard shows revenue, expenses, profit, departmental budgets
+and transaction risk indicators, the view a small finance team would use. The application is
+intentionally small; it is a DevOps portfolio and assessment project, and the work in this repository
 is the platform around it:
 
 - Terraform split into three roots with remote state;
@@ -78,19 +80,21 @@ have `terraform test` suites.
 Decisions and trade-offs:
 
 - **Single NAT gateway.** It costs less than one per AZ. The downside is that the private subnets lose
-  outbound access if eu-west-2a fails, which I accept for a development environment.
+  outbound access if eu-west-2a fails, which I accept for a development environment
+  ([costs](docs/infrastructure/costs.md)).
 - **Private worker nodes.** Nodes run only in private subnets, with IMDSv2 required and encrypted root
   volumes. The EKS API endpoint is public but limited to configured CIDR ranges. On the deployed
   cluster I checked that the endpoint is not open to `0.0.0.0/0`, that no node has a public IP and that
-  the node group has no SSH access.
+  the node group has no SSH access ([network security](docs/infrastructure/network-security.md)).
 - **EKS Pod Identity.** The load balancer controller, ExternalDNS and cert-manager each get their own IAM
   role, tied to one service account. The two DNS controllers can change records only in the FinSight
-  hosted zone.
+  hosted zone ([DNS and certificates](docs/infrastructure/dns-and-certificates.md),
+  [load balancer controller](docs/infrastructure/load-balancer-controller.md)).
 - **Ingress only through the NLB.** The application is reached only through the internet-facing NLB.
   The Terraform configuration gives the NLB its own security group and allows it to reach only the
-  ingress controller's pod ports. The intended rule set is
-  in [network security](docs/infrastructure/network-security.md); I have not audited it rule by rule
-  against the deployed security groups.
+  ingress controller's pod ports. The rule set is in
+  [network security](docs/infrastructure/network-security.md); the deployed security groups were
+  checked against it on 18 October 2026 ([evidence](docs/screenshots/eks/2026-10-18-network-iam-security-verification.md#g024-security-groups-every-group-in-the-vpc)).
 
 ## Cluster platform (Argo CD)
 

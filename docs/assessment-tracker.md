@@ -17,7 +17,7 @@ Current status, 19 October 2026. Task board (public): https://github.com/users/F
 | G06 | Pipeline 1: Terraform | 10 | In progress | PR checks and OIDC plans (runs 38892240555, 38896532913); protected apply of a reviewed, encrypted saved plan (run 38901260888) | A deliberate failing run (G06.6) |
 | G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | In progress | Run 38761479287: tests, Checkov, matrix build, Trivy gate, OIDC ECR publish and GitOps PR #46; deployed digests match ECR | Failing-test and Trivy-blocked runs (G07.8) |
 | G08 | ArgoCD GitOps | 15 | Verified | Eight Applications Synced and Healthy; automated sync from merges; self-heal demonstrated; initial admin Secret removed | None recorded |
-| G09 | Architecture Design | 10 | In progress | Editable draw.io source (3 pages) and PNG exports; status banner updated 17 October 2026; embedded in the README | Assessor review |
+| G09 | Architecture Design | 10 | Verified | Editable draw.io source (3 pages) and PNG exports, verified 19 October 2026 ([diagram verification](screenshots/architecture/2026-10-19-diagram-verification.md)); embedded in the README | Cosmetic: two overlapping labels on page 3 |
 | | **Total** | **135** | | | |
 
 Additional project requirements:

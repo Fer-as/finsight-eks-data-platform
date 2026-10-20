@@ -37,6 +37,7 @@ middle and end snapshots (G01.5) were not captured.
 | [eks-node-group-details.png](eks/eks-node-group-details.png) | Managed node group Active: `m7i-flex.large`, 2 nodes (min 2, max 3), on-demand, remote access off | Deployment |
 | [eks-five-addons-active.png](eks/eks-five-addons-active.png) | EBS CSI driver, Pod Identity Agent, VPC CNI, CoreDNS and kube-proxy all Active | Deployment |
 | [2026-10-16-eks-deployment.md](eks/2026-10-16-eks-deployment.md) | Terraform apply of the platform root (68 resources); `kubectl` shows two nodes Ready in eu-west-2a and eu-west-2b | Deployment |
+| [2026-10-19-workload-security-check.md](eks/2026-10-19-workload-security-check.md) | Read-only check (19 October 2026) of every FinSight container: non-root UIDs, no privilege escalation, capabilities dropped, read-only root filesystem, requests and limits, probes; Argo CD initial admin Secret removed | Deployment |
 | [2026-10-18-network-iam-security-verification.md](eks/2026-10-18-network-iam-security-verification.md) | Read-only live checks (18 October 2026): subnets, routes, NAT, S3 endpoint and flow logs; private nodes without public IPs, IMDSv2 and encrypted gp3 volumes; IAM roles with policy names, boundaries and trust (statements not compared line by line); every security-group rule | Deployment |
 
 ## G03 NGINX Ingress
@@ -120,10 +121,12 @@ The four `terraform-apply-*` screenshots follow one protected apply,
   [CI/CD and IAM](../architecture/finsight-architecture-cicd.png)
 
 The diagram's status banner records the deployment verified on 16–17 October 2026. ETL to S3 and
-dbt are shown as planned.
+dbt are shown as planned. The diagram was independently re-verified on 19 October 2026:
+[2026-10-19-diagram-verification.md](architecture/2026-10-19-diagram-verification.md).
 
 ## Not yet evidenced
 
+- **G01.1:** a reviewed screenshot of the current, reconciled project board.
 - **G01.5:** dated board snapshots at the start, middle and end of the work.
 - **G04.3:** a demonstrated certificate renewal. cert-manager has scheduled renewal for 15 December
   2026, but a renewal has not been forced.
