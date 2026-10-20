@@ -16,6 +16,20 @@ data only. I tore the platform down on 20 October 2026 to stop its running costs
 ([teardown evidence](docs/evidence/2026-10-20-platform-teardown.md)); the state, data, images and CI
 identity are retained.
 
+## For assessors
+
+| Start here | What it shows |
+|---|---|
+| [Assessment tracker](docs/assessment-tracker.md) | Status of the nine graded categories, G01-G09 |
+| [Acceptance checklist](docs/reviewer-acceptance-checklist.md) | Every criterion with its status, evidence and verification method |
+| [Evidence index](docs/screenshots/README.md) | Screenshots and command-output notes for each category |
+| [Architecture diagram](docs/architecture/finsight-architecture.drawio) | Editable draw.io source ([verification](docs/screenshots/architecture/2026-10-19-diagram-verification.md)) |
+| [Decision index](docs/architecture/decisions.md) | Each design decision with its reason, alternatives and date |
+| [Failing CI runs](docs/screenshots/cicd/2026-10-20-deliberate-failing-runs.md) | Deliberate Terraform, test and Trivy failures that stop the pipelines |
+| [IAM review](docs/screenshots/eks/2026-10-20-iam-policy-review.md) | Every role's trust, boundary and policy statements |
+| [Teardown record](docs/evidence/2026-10-20-platform-teardown.md) | Backup, controller cleanup, the platform destroy and post-teardown checks |
+
+- [For assessors](#for-assessors)
 - [Architecture](#architecture)
 - [Recorded deployment](#recorded-deployment)
 - [Infrastructure (Terraform)](#infrastructure-terraform)
@@ -307,11 +321,16 @@ To stop, run `docker compose down`. Add `--volumes` to delete the local database
 
 | Path | Contents |
 |---|---|
-| `apps/api`, `apps/frontend` | Application code, tests and Dockerfiles |
-| `pipelines/` | Synthetic data generator and ETL |
-| `warehouse/` | SQL migrations and the planned dbt contract |
-| `infra/terraform/` | Terraform roots and modules |
-| `gitops/` | Argo CD root, platform Applications and the FinSight Helm chart |
-| `.github/workflows/` | Terraform and application pipelines |
-| `scripts/` | Validation, CI helpers and operator scripts |
-| `docs/` | Architecture, runbooks, evidence and assessment mapping |
+| [`apps/api`](apps/api), [`apps/frontend`](apps/frontend) | Application code, tests and Dockerfiles |
+| [`pipelines/`](pipelines) | Synthetic data generator and ETL |
+| [`warehouse/`](warehouse) | SQL migrations and the planned dbt contract |
+| [`config/`](config) | Synthetic dataset parameters |
+| [`infra/terraform/`](infra/terraform) | Terraform roots and modules |
+| [`gitops/`](gitops) | Argo CD root, platform Applications and the FinSight Helm chart |
+| [`.github/workflows/`](.github/workflows) | Terraform and application pipelines |
+| [`scripts/`](scripts) | Validation, CI helpers and operator scripts |
+| [`tests/`](tests) | PostgreSQL integration tests and offline GitOps tests |
+| [`compose.yaml`](compose.yaml) | Local stack: PostgreSQL, migrations, data generation, ETL, API, frontend and a test service |
+| [`docs/architecture/`](docs/architecture) | Diagram source and exports, decision index |
+| [`docs/infrastructure/`](docs/infrastructure) | Runbook and design notes for each platform component |
+| [`docs/evidence/`](docs/evidence), [`docs/screenshots/`](docs/screenshots/README.md) | Command-output notes and screenshots from the recorded deployment |
