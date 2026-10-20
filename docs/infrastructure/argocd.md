@@ -213,7 +213,9 @@ described below. See the [evidence index](../screenshots/README.md#g08-argo-cd).
 ## In-cluster database
 
 PostgreSQL 17 runs inside the `finsight` Application (`gitops/apps/finsight/templates/database.yaml`).
-There is no RDS and no operator.
+There is no RDS and no operator. Every component in the chart uses the single role from Secret
+`finsight-database`. The separate writer and reader roles used locally are not yet applied here; see
+[database roles](database-roles.md#where-it-runs).
 
 - **Storage.** StatefulSet `finsight-postgres` has one replica. It uses a 5 GiB encrypted gp3 volume
   from StorageClass `finsight-gp3` (`ebs.csi.aws.com`, `WaitForFirstConsumer`). The EBS CSI add-on

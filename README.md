@@ -270,6 +270,11 @@ generates the dataset and loads it with the ETL. The database credentials are a 
 created outside Git by [`scripts/new-cluster-secrets.ps1`](scripts/new-cluster-secrets.ps1). The KPI
 definitions are in [docs/kpi-definitions.md](docs/kpi-definitions.md).
 
+Locally, the components use separate PostgreSQL roles: the migrations and ETL run as a writer role,
+and the API as a read-only reader that cannot write, run DDL or change roles
+([database roles](docs/infrastructure/database-roles.md)). The Kubernetes chart, and the recorded
+EKS deployment, still use the single database role from the Secret above.
+
 ## Monitoring
 
 Monitoring uses kube-prometheus-stack 91.8.2. Prometheus keeps 2 days of data, capped at 3 GB. The
@@ -291,6 +296,9 @@ I reach them with `kubectl port-forward`. More detail: [monitoring](docs/infrast
   PostgreSQL custom-format backup and restore-tested it in a separate database
   ([teardown evidence](docs/evidence/2026-10-20-platform-teardown.md#database-backup)).
 - **Not highly available.** There is one NAT gateway and one PostgreSQL replica.
+- **Kubernetes uses one database role.** Separate writer and reader roles are used locally and
+  tested in CI, but not yet in the FinSight chart
+  ([database roles](docs/infrastructure/database-roles.md#where-it-runs)).
 - **Frontend badge.** It still says "LOCAL ENVIRONMENT", a leftover from local development.
 - **Next improvements.** Two NAT gateways for AZ resilience; Amazon RDS with automated backups in
   place of the in-cluster database; External Secrets with AWS Secrets Manager in place of
@@ -312,8 +320,9 @@ docker compose up --build -d --wait frontend
 Start-Process 'http://localhost:5173'
 ```
 
-Compose runs the migrations, data generation and ETL before it starts the API and frontend. The
-`migrate`, `generate` and `etl` containers exit with code 0; that is expected. API docs are at
+Compose creates the database roles, then runs the migrations, data generation and ETL before it
+starts the API and frontend. The `roles`, `migrate`, `generate` and `etl` containers exit with code
+0; that is expected. API docs are at
 <http://localhost:8000/docs>.
 
 To run all the tests, use [`scripts/verify.ps1`](scripts/verify.ps1):
