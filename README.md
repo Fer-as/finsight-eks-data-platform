@@ -288,21 +288,50 @@ I reach them with `kubectl port-forward`. More detail: [monitoring](docs/infrast
 
 ## Limitations and planned work
 
-- **ETL to S3: planned.** The data bucket and an ETL Pod Identity role exist, but the ETL still loads
-  straight into PostgreSQL.
-- **ELT with dbt: not started.** Only the contract in [`warehouse/dbt`](warehouse/dbt/README.md) exists.
+FinSight is deliberately small. I used EKS to demonstrate Kubernetes and platform engineering:
+infrastructure as code, GitOps, ingress, TLS, monitoring and secured CI/CD. A synthetic reporting
+application of this size does not need Kubernetes, and a single managed container service would
+have cost less to run it.
+
+The recorded deployment (16–20 October 2026) had these limits:
+- **Cost-conscious, not highly available.**
+  - There was one NAT gateway.
+  - The API, the frontend and PostgreSQL each ran one replica, with no PodDisruptionBudgets.
+  - Losing a node, or eu-west-2a, would have interrupted the service.
 - **No automated backups.** There was no recurring backup service for the in-cluster database;
   the data is synthetic and can be regenerated. Before the teardown on 20 October 2026 I took a
   PostgreSQL custom-format backup and restore-tested it in a separate database
   ([teardown evidence](docs/evidence/2026-10-20-platform-teardown.md#database-backup)).
-- **Not highly available.** There is one NAT gateway and one PostgreSQL replica.
+- **No pod-level network policies.**
+  - No Kubernetes NetworkPolicy was applied, and VPC CNI network-policy enforcement was not
+    enabled, so traffic between pods was not restricted.
+  - The database and monitoring were reachable only through ClusterIP Services, and inbound
+    traffic only through the NLB and its security group.
+- **Secrets created by hand.** The database and Grafana credentials were Kubernetes Secrets created
+  with [`scripts/new-cluster-secrets.ps1`](scripts/new-cluster-secrets.ps1), not synchronised from a
+  secrets manager.
 - **Kubernetes uses one database role.** Separate writer and reader roles are used locally and
   tested in CI, but not yet in the FinSight chart
   ([database roles](docs/infrastructure/database-roles.md#where-it-runs)).
-- **Frontend badge.** It still says "LOCAL ENVIRONMENT", a leftover from local development.
-- **Next improvements.** Two NAT gateways for AZ resilience; Amazon RDS with automated backups in
-  place of the in-cluster database; External Secrets with AWS Secrets Manager in place of
-  out-of-band Secrets.
+- **Alerts were not delivered.** Prometheus evaluated the alert rules, but there was no
+  Alertmanager. Metrics were kept for two days on node storage (`emptyDir`), with no persistent
+  volume.
+- **First provisioning by hand.** I applied bootstrap, foundation and the first platform plan from
+  reviewed saved plans on my workstation. Later platform changes went through the approval-gated CI
+  apply ([Terraform CI](docs/infrastructure/terraform-ci.md)).
+- **Data pipeline.**
+  - **ETL to S3: planned.** The data bucket and an ETL Pod Identity role exist, but the ETL loads
+    straight into PostgreSQL.
+  - **ELT with dbt: not started.** Only the contract in [`warehouse/dbt`](warehouse/dbt/README.md)
+    exists.
+
+Next improvements:
+- two NAT gateways and two or more replicas per application, with PodDisruptionBudgets;
+- Amazon RDS with automated backups, in place of the in-cluster database;
+- External Secrets with AWS Secrets Manager;
+- NetworkPolicies with VPC CNI enforcement enabled;
+- Alertmanager with a real receiver, and persistent Prometheus storage;
+- the separate database roles in the FinSight chart.
 
 Verification notes and Terraform validation results are in [docs/evidence](docs/evidence).
 Screenshots for each assessment area are indexed in [docs/screenshots](docs/screenshots/README.md).

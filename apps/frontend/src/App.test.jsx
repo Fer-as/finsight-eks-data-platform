@@ -91,6 +91,18 @@ describe("FinSight", () => {
     expect(screen.getByText(/not confirmed fraud/)).toBeTruthy();
   });
 
+  it("labels the data as a synthetic demonstration, not a live environment", async () => {
+    mockApi();
+    render(<App />);
+    await screen.findByText("Operating profit");
+    expect(screen.queryByText(/LOCAL ENVIRONMENT/i)).toBeNull();
+    expect(screen.getByText("DEMO DATA")).toBeTruthy();
+    expect(screen.getByText("SYNTHETIC DATA ONLY")).toBeTruthy();
+    expect(
+      screen.getByText(/not connected to any live financial system/),
+    ).toBeTruthy();
+  });
+
   it("shows empty periods rather than invented values", async () => {
     mockApi({ ...dashboard, has_data: false, monthly: [] });
     render(<App />);

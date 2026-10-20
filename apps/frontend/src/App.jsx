@@ -90,13 +90,15 @@ export default function App() {
           </a>
         </nav>
         <div className="sidebar-footer">
-          <span className="status-dot" /> LOCAL ENVIRONMENT
+          <span className="demo-tag">DEMO DATA</span>
           <p>
             Financial clarity.
             <br />
-            Built on reliable data.
+            Synthetic GBP data only.
           </p>
-          <small>Day 1 · Platform foundation</small>
+          <small>
+            Portfolio demonstration · not connected to any live financial system
+          </small>
         </div>
       </aside>
       <main id="overview">
