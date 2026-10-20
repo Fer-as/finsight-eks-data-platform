@@ -10,9 +10,10 @@ This is FinSight's single acceptance checklist. It combines three sources:
 3. FinSight's own application and data-engineering goals (part 5), plus the existing
    [assessment tracker](assessment-tracker.md), architecture and infrastructure records.
 
-Last updated 19 October 2026. No assessment
-points have been awarded; this document tracks evidence, not grades. Live evidence is indexed
-in [docs/screenshots](screenshots/README.md).
+Last updated 20 October 2026. No assessment
+points have been awarded; this document tracks evidence, not grades. Evidence from the recorded
+deployment (16–20 October 2026) is indexed in [docs/screenshots](screenshots/README.md). The
+platform was torn down on 20 October 2026; see the [teardown record](evidence/2026-10-20-platform-teardown.md).
 
 ## 1. Project definition and grading rules
 
@@ -69,12 +70,12 @@ for the bootstrap and foundation roots on 14 October 2026 (G02.6).
 | ID | Category | Points | Status | Readiness summary (not a grade) | Reviewer IDs |
 |---|---|---:|---|---|---|
 | G01 | Board / Tickets | 10 | In progress | Public board with 31 issues; PRs #33 and #35 closed linked issues; statuses reconciled 17 October 2026; board snapshots of 17 October (before reconciliation) and 20 October 2026 (after); dated start and middle snapshots missing (G01.5) | R11.2 |
-| G02 | Terraform for AWS Infrastructure | 15 | In progress | All three roots applied; platform applied 16 October 2026; network, nodes, security groups and add-ons verified live (16 and 18 October 2026). Still open: line-by-line comparison of IAM policy statements (G02.3) | R9.1-R9.6, R6.6 |
+| G02 | Terraform for AWS Infrastructure | 15 | Verified | All three roots applied; platform applied 16 October 2026; network, nodes, security groups and add-ons verified live (16 and 18 October 2026); IAM statements, boundary and trust reviewed 20 October 2026 ([IAM review](screenshots/eks/2026-10-20-iam-policy-review.md)) | R9.1-R9.6, R6.6 |
 | G03 | NGINX Ingress Controller | 10 | Verified | Deployed via Argo CD 16 October 2026; routing, 301 redirect and 404 verified; NLB confirmed in the public subnets on 18 October 2026 | R6.4 |
 | G04 | CertManager and ExternalDNS | 20 | In progress | Deployed 16 October 2026: production certificate Ready and trusted, ExternalDNS records live. Not yet demonstrated: forced renewal (G04.3) and record lifecycle (G04.5) | R6.3-R6.5, R4.7 |
 | G05 | Monitoring Setup | 15 | Verified | Deployed 16 October 2026: targets UP, default Grafana login rejected; live node, namespace, pod and service dashboards captured 19 October 2026 after the Grafana memory fix (PR #57) | R4.3, R4.4 |
-| G06 | Pipeline 1: Terraform | 10 | In progress | PR checks and OIDC plans run (38892240555, 38896532913); protected apply of a reviewed saved plan (38901260888). Missing: a deliberate failing run (G06.6) | R7.3, R7.5-R7.10, R9.2 |
-| G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | In progress | Run 38761479287: tests, Checkov, matrix build, Trivy gate, OIDC ECR publish and GitOps PR #46; deployed digests match ECR. Missing: failing-test and Trivy-blocked runs (G07.8) | R7.1-R7.9, R4.5, R5.1-R5.7, R8.2, R10.4 |
+| G06 | Pipeline 1: Terraform | 10 | Verified | PR checks and OIDC plans run (38892240555, 38896532913); protected apply of a reviewed saved plan (38901260888); deliberate formatting failure stopped before the plan (39387242933, [evidence](screenshots/cicd/2026-10-20-deliberate-failing-runs.md)) | R7.3, R7.5-R7.10, R9.2 |
+| G07 | Pipeline 2: Security, Docker and Kubernetes | 30 | Verified | Run 38761479287: tests, Checkov, matrix build, Trivy gate, OIDC ECR publish and GitOps PR #46; deployed digests match ECR. 20 October 2026: a failing test (39387572606) and a Trivy-blocked image (39387251772) each skipped publish and GitOps ([evidence](screenshots/cicd/2026-10-20-deliberate-failing-runs.md)) | R7.1-R7.9, R4.5, R5.1-R5.7, R8.2, R10.4 |
 | G08 | ArgoCD GitOps | 15 | Verified | 17 October 2026: eight Applications Synced and Healthy; automated sync from merges; self-heal reverted manual drift; initial admin Secret removed | R8.1-R8.5, R4.2 |
 | G09 | Architecture Design | 10 | Verified | Editable draw.io source (3 pages, AWS and Kubernetes shapes, 7 flows on layers, legend, trust boundaries) with PNGs exported from it; all five criteria verified 19 October 2026 ([diagram verification](screenshots/architecture/2026-10-19-diagram-verification.md)) | R2.1-R2.4, R1.2 |
 | | **Total** | **135** | | | |
@@ -88,9 +89,9 @@ Every category has a record table and criteria rows. Tickets are on the
 
 | Field | Record |
 |---|---|
-| Status | In progress |
-| Existing implementation | [Board](https://github.com/users/Fer-as/projects/2) with Backlog, Todo, In Progress, Review, Done and a Priority field; Board and Table views; 30 issues ([#3](https://github.com/Fer-as/finsight-eks-data-platform/issues/3)-[#32](https://github.com/Fer-as/finsight-eks-data-platform/issues/32)) labelled by category and priority; linked to this repository |
-| Missing | Remaining pull requests linked to issues; dated board screenshots; continued use as work progresses |
+| Status | In progress (4 of 5 criteria Verified) |
+| Existing implementation | Public [board](https://github.com/users/Fer-as/projects/2) with Backlog, Todo, In Progress, Review, Done and a Priority field; 31 issues; PRs #33 and #35 closed linked issues; retrospective issue #3; card statuses reconciled 17 October 2026; board snapshots of 17 October (before reconciliation) and 20 October 2026 (after) |
+| Missing | G01.5: dated start and middle snapshots were not captured and are not recreated |
 | Runtime / repository evidence | Board screenshot over time; issues and PRs on GitHub |
 | Objective verification | Open the board: every remaining graded criterion maps to an issue; merged PRs close issues |
 | Reviewer IDs | R11.2 |
@@ -108,9 +109,9 @@ Every category has a record table and criteria rows. Tickets are on the
 
 | Field | Record |
 |---|---|
-| Status | In progress |
-| Existing implementation | `infra/terraform/` modules network, eks, pod-role, github-oidc, ecr, retained-bucket, access-log-bucket, config; roots bootstrap (applied), foundation (applied), platform (validated, not planned) |
-| Missing | Platform plan and apply; post-deployment security-group and controller evidence; CI apply role (#8) |
+| Status | Verified (all 7 criteria, 16–20 October 2026) |
+| Existing implementation | `infra/terraform/` roots bootstrap and foundation (applied 14 October 2026) and platform (applied 16 October 2026 from a reviewed saved plan, 68 resources); network, nodes, security groups, add-ons and IAM verified live 16–20 October 2026. Platform torn down 20 October 2026 ([teardown](evidence/2026-10-20-platform-teardown.md)); bootstrap and foundation retained |
+| Missing | None |
 | Runtime / repository evidence | Plan and apply summaries, `aws eks describe-*`, `kubectl get nodes`, Checkov results |
 | Objective verification | Plans match expected counts; resources exist with the stated settings; teardown leaves retained resources only |
 | Reviewer IDs | R9.1-R9.6, R6.6, R12.1-R12.3 |
@@ -120,7 +121,7 @@ Every category has a record table and criteria rows. Tickets are on the
 |---|---|---|---|---|---|
 | G02.1 | VPC with two public and two private subnets across two AZs, internet gateway, one NAT gateway, private routes via NAT, S3 gateway endpoint, flow logs | Verified (18 October 2026: two public and two private subnets in eu-west-2a/b, `mapPublicIpOnLaunch` false on all four; public routes to the internet gateway, private routes to the single NAT; S3 gateway endpoint on both private route tables; VPC flow logs ACTIVE; [evidence](screenshots/eks/2026-10-18-network-iam-security-verification.md)) | Platform plan and apply; `describe-subnets` / `describe-route-tables` | `infra/terraform/modules/network`, `docs/evidence/` | Public subnets route to the IGW; private subnets route to the NAT; `map_public_ip_on_launch` false |
 | G02.2 | EKS 1.36 STANDARD cluster with the managed node group in private subnets only, IMDSv2 required, encrypted root volumes | Verified (18 October 2026: EKS 1.36 STANDARD ACTIVE; node group only in the private subnets, no SSH; both nodes Ready, no public IP on any ENI, IMDSv2 required with hop limit 1, encrypted gp3 root volumes; [evidence](screenshots/eks/2026-10-18-network-iam-security-verification.md)) | Apply output; `describe-cluster`, `describe-nodegroup`; node ENIs without public IPs | `infra/terraform/modules/eks`, `docs/evidence/` | Nodes Ready; no node has a public IP |
-| G02.3 | IAM roles restricted: cluster, node, Pod Identity (CNI, EBS CSI, ETL, ExternalDNS), GitHub plan and image roles, administrator role; no wildcard admin | In progress (18 October 2026: all 13 FinSight roles listed with attached and inline policy names, permissions boundaries and trust; no admin policy and no `*` on `*`; no IAM drift in the PR and apply plans. Policy statements not yet compared line by line with the documented scope; [evidence](screenshots/eks/2026-10-18-network-iam-security-verification.md)) | IAM policy listings | `infra/terraform/modules/*`, `docs/evidence/` | Each role's policies match the documented scope |
+| G02.3 | IAM roles restricted: cluster, node, Pod Identity (CNI, EBS CSI, ETL, ExternalDNS), GitHub plan and image roles, administrator role; no wildcard admin | Verified (20 October 2026: every trust policy, boundary setting and inline and customer-managed statement of the 13 roles reviewed against Terraform, and re-read live the same day, identical to the 18 October capture; the workload boundary matches Terraform and is used by 9 roles; the five AWS-managed policies contain no service-wide wildcard; no admin policy and no `*` on `*`; [IAM review](screenshots/eks/2026-10-20-iam-policy-review.md)) | IAM policy listings | `infra/terraform/modules/*`, `docs/evidence/` | Each role's policies match the documented scope |
 | G02.4 | Security groups: cluster and node groups defined in Terraform, or the EKS-managed cluster group documented with its actual rules; the VPC default group has no rules; API endpoint restricted to explicit CIDRs | Verified (18 October 2026: default group has no rules; cluster group inbound only from itself and from the NLB group on TCP 80/443/8081; only the NLB group's 80/443 open to 0.0.0.0/0; EKS API limited to one CIDR; [evidence](screenshots/eks/2026-10-18-network-iam-security-verification.md)) | Terraform or design note; `describe-security-groups` after apply | `infra/terraform/modules/network`, `modules/eks`, `docs/infrastructure/` | Every inbound rule has a named source and reason; no 0.0.0.0/0 except the public load balancer listener ports |
 | G02.5 | Reusable modules with typed inputs, validations, outputs and READMEs (same as R9.1) | Verified | Module tree; validation run | `infra/terraform/modules/` | `scripts/validate-terraform.ps1` passed on 14 October 2026 (3/3 roots, 9/9 tests) |
 | G02.6 | Remote state in S3 with native locking, encryption, versioning and a separate key per root | Verified (S3 native locking observed 14 October 2026; platform key `dev/platform/terraform.tfstate` used by the 16 October apply and by run 38901260888) | Backend configuration; S3 object listing; lock create/release observed | `infra/terraform/*/backend.tf`, `docs/evidence/` | All three keys present in the state bucket; a concurrent plan is refused while locked |
@@ -130,9 +131,9 @@ Every category has a record table and criteria rows. Tickets are on the
 
 | Field | Record |
 |---|---|
-| Status | In progress (local implementation; no live evidence) |
+| Status | Verified (all 4 criteria, 16–18 October 2026) |
 | Existing implementation | Deployed 16 October 2026 via Argo CD: F5 NGINX Ingress Controller 5.6.3 / chart 2.7.3 values and Argo CD Application (`gitops/platform/nginx-ingress`), FinSight chart with Services and host/path Ingress (`gitops/apps/finsight`); helm lint/template and kubeconform (Kubernetes 1.36) pass; see `docs/infrastructure/ingress.md` |
-| Missing | Live deployment and evidence (controller pods, NLB in public subnets, curl results), production frontend image (R5.7), Argo CD (G05), TLS redirect after G04 |
+| Missing | None. Host and path routing verified 16 October 2026; HTTP 301 to HTTPS and 404 for unknown paths 17 October 2026; NLB confirmed in the public subnets 18 October 2026. Platform torn down 20 October 2026 ([teardown](evidence/2026-10-20-platform-teardown.md)) |
 | Runtime / repository evidence | Controller pods, LoadBalancer service, Ingress objects, `curl` results |
 | Objective verification | Requests reach the correct services by host and path; wrong host or path is rejected |
 | Reviewer IDs | R6.4, R4.7 |
@@ -151,9 +152,9 @@ Certificate issuance, renewal, DNS management and the final HTTPS result are tes
 
 | Field | Record |
 |---|---|
-| Status | In progress |
+| Status | In progress (4 of 6 criteria Verified) |
 | Existing implementation | Public hosted zone; Terraform Pod Identity roles for cert-manager and ExternalDNS (name-scoped Route 53 policies, tested). Deployed 16 October 2026: cert-manager v1.21.2 values + Argo CD Application, staging/production DNS-01 ClusterIssuers chart, ExternalDNS 1.23.0 (v0.23.0) values + Argo CD Application, Ingress TLS switch; helm lint/template, kubeconform (Kubernetes 1.36) and record-name/IAM checks pass; see `docs/infrastructure/dns-and-certificates.md` |
-| Missing | Live deployment and evidence (pods, DNS-01 challenges, Ready certificate, renewal, Route 53 records, HTTPS); Argo CD (G05); decision on ExternalDNS `policy: sync` for the removal test (default upsert-only) |
+| Missing | Verified 16–17 October 2026: installation, DNS-01 issuance of a trusted Let's Encrypt production certificate, ExternalDNS creation of the application records with TXT ownership, and HTTPS. Not demonstrated: G04.3 renewal (scheduled for 15 December 2026, after the platform was removed) and G04.5 record update and removal (ExternalDNS ran `upsert-only`; the four records deleted during teardown were removed explicitly, which is not a lifecycle demonstration). Platform torn down 20 October 2026 ([teardown](evidence/2026-10-20-platform-teardown.md)) |
 | Runtime / repository evidence | Certificate and Order status, Route 53 record listing, renewal output, `curl -v` |
 | Objective verification | Each of G04.2-G04.6 shown independently |
 | Reviewer IDs | R6.3, R6.4, R6.5, R4.7, R3.1 |
@@ -172,9 +173,9 @@ Certificate issuance, renewal, DNS management and the final HTTPS result are tes
 
 | Field | Record |
 |---|---|
-| Status | In progress |
+| Status | Verified (all 5 criteria, 16–19 October 2026) |
 | Existing implementation | Deployed 16 October 2026: `gitops/platform/monitoring` (kube-prometheus-stack 91.8.2, Prometheus v3.15.0, Grafana 13.2.4, node-exporter, kube-state-metrics; EKS control-plane targets off; no Alertmanager, Ingress or PVCs; Grafana admin from Secret `grafana-admin`); NGINX `enableLatencyMetrics` + metrics Service + ServiceMonitor; API `finsight_api_requests_total` / `finsight_api_request_duration_seconds` on internal `/metrics` (3 new pytest tests); FinSight ServiceMonitor, `FinSightApiDown` / `FinSightApiHighErrorRate` rules and dashboard `FinSight / Service overview`; `tests/gitops/test_monitoring.py` (render, kubeconform 1.36, promtool check + unit tests, PromQL of every panel, whole-cluster sizing); runbook `docs/infrastructure/monitoring.md` |
-| Missing | Live install and evidence: pods Running, targets UP, dashboards with live data under generated traffic, failed default login; an image published with the instrumented API |
+| Missing | None. Default Grafana login rejected 16 October 2026; NGINX and API targets UP 16–17 October 2026; node, namespace, pod and service dashboards with live data captured 19 October 2026 after the Grafana memory fix (PR #57). Platform torn down 20 October 2026 ([teardown](evidence/2026-10-20-platform-teardown.md)) |
 | Runtime / repository evidence | Prometheus targets, Grafana dashboards with live data, sizing note |
 | Objective verification | Each metric family is visible with non-empty, current data |
 | Reviewer IDs | R4.3, R4.4 |
@@ -192,9 +193,9 @@ Certificate issuance, renewal, DNS management and the final HTTPS result are tes
 
 | Field | Record |
 |---|---|
-| Status | In progress |
-| Existing implementation | `scripts/validate-terraform.ps1` and `scan-terraform.ps1`; `.github/workflows/terraform.yml` (#10, not yet run); applied roles `finsight-dev-github-infra-plan` (plan-only) and `finsight-dev-github-infra-apply` (#8); protected `dev-infrastructure-apply` |
-| Missing | Workflow; an apply role used only behind a protected GitHub environment with required reviewers; plan/apply separation; failure handling |
+| Status | Verified (all 7 criteria, 16–20 October 2026) |
+| Existing implementation | `.github/workflows/terraform.yml` (PR checks and a plan with the plan-only OIDC role behind `dev-infrastructure`) and `terraform-apply.yml` (manual, approval-gated apply of an age-encrypted saved plan behind `dev-infrastructure-apply`); `scripts/validate-terraform.ps1`; roles `finsight-dev-github-infra-plan` and `finsight-dev-github-infra-apply` |
+| Missing | None. Passing runs 38892240555 and 38896532913 and protected apply 38901260888 (16 October 2026); deliberate formatting failure 39387242933 (20 October 2026) ([evidence](screenshots/cicd/2026-10-20-deliberate-failing-runs.md)) |
 | Runtime / repository evidence | Workflow file; successful and failing runs; environment protection settings |
 | Objective verification | A pull request gets checks and a plan; apply waits for a reviewer; a bad change fails |
 | Reviewer IDs | R7.3, R7.5-R7.10, R9.2 |
@@ -207,7 +208,7 @@ Certificate issuance, renewal, DNS management and the final HTTPS result are tes
 | G06.3 | Controlled deployment: apply runs only from the reviewed saved plan, through a protected environment with required reviewers, using a separate least-privilege apply role | Verified (16-17 October 2026: run 38901260888 applied exactly the reviewed saved plan after approvals in `dev-infrastructure` and `dev-infrastructure-apply`) | Workflow, environment protection, apply role | `.github/workflows/`, `infra/terraform/modules/github-oidc` | The apply job pauses for approval; the plan role alone cannot apply |
 | G06.4 | Costly or destructive actions (platform apply, any destroy or replacement) require explicit manual approval and are never automatic | Verified (workflow refuses deletes, replacements and forgets without `allow_destroy` and always refuses VPC or EKS cluster lifecycle changes; the synthetic gate tests run in every PR check; no live destructive plan attempted) | Workflow conditions | `.github/workflows/` | A plan containing deletes is blocked without approval |
 | G06.5 | Error handling: fail fast, a per-root concurrency group, no automatic force-unlock, clear failure summaries | Verified (workflow: shared concurrency group never cancelled, 5-minute lock timeout, no force-unlock, failure summaries) | Workflow | `.github/workflows/` | Two concurrent runs serialise; a lock conflict fails cleanly |
-| G06.6 | Successful and failing runs recorded | In progress (passing runs recorded: 38892240555, 38896532913, 38901260888; one unplanned failure, 38887295294; a deliberate failing run is not yet recorded) | Run screenshots or links | `docs/screenshots/cicd/` | One passing and one deliberately failing run |
+| G06.6 | Successful and failing runs recorded | Verified (passing runs 38892240555, 38896532913 and 38901260888; 20 October 2026: deliberate failure [39387242933](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/39387242933), where `terraform fmt -check` failed the checks job and the plan job was skipped; [evidence](screenshots/cicd/2026-10-20-deliberate-failing-runs.md)) | Run screenshots or links | `docs/screenshots/cicd/` | One passing and one deliberately failing run |
 | G06.7 | No state or secrets in artifacts or logs; plan artifacts short-lived and access-restricted | Verified (workflow: value-free summaries, no binary plan from pull requests, apply plan encrypted and kept as one-day artifacts; observed in run 38901260888) | Workflow settings | `.github/workflows/` | Review artifacts and logs |
 
 ### G07 Pipeline 2: Security, Docker and Kubernetes (30 points)
@@ -217,9 +218,9 @@ manifests, and Argo CD applies them (G08). There is no second, direct `kubectl` 
 
 | Field | Record |
 |---|---|
-| Status | In progress |
-| Existing implementation | Local tests (Day 1: 37 Python and 6 frontend passed), API Dockerfile with non-root user, frontend development Dockerfile, ECR repositories and image publisher role (applied 14 October 2026), local Checkov script |
-| Missing | GitHub runs (green and failing), dev-images environment + IMAGE_PUBLISHING_ENABLED, Actions permission to open pull requests, ECR digests, Argo CD rollout evidence |
+| Status | Verified (all 8 criteria, 15–20 October 2026) |
+| Existing implementation | `.github/workflows/app.yml`: ruff, pytest with PostgreSQL and Vitest; Checkov; one matrix job building the api, etl and frontend images with a Trivy gate; OIDC publish to immutable ECR behind `dev-images`; GitOps image-digest pull request |
+| Missing | None. End-to-end run 38761479287 and GitOps PR #46 (15–16 October 2026); failing-test run 39387572606 and Trivy-blocked run 39387251772 (20 October 2026) ([evidence](screenshots/cicd/2026-10-20-deliberate-failing-runs.md)). A newer fixable finding in the frontend base image is recorded there; the fix is a separate change |
 | Runtime / repository evidence | Workflow runs, image digests in ECR, Trivy and Checkov reports, manifest-update commits |
 | Objective verification | A commit produces scanned images in ECR and a deployed change; a vulnerable or failing change is blocked |
 | Reviewer IDs | R7.1, R7.2, R7.4-R7.9, R4.5, R5.1-R5.7, R8.2, R8.3, R10.4 |
@@ -230,19 +231,19 @@ manifests, and Argo CD applies them (G08). There is no second, direct `kubectl` 
 | G07.1 | Checkov runs against Terraform (and Kubernetes manifests) in the pipeline and fails on new findings | Verified (run 38761479287: Checkov over Terraform, Dockerfiles and rendered Kubernetes) | Workflow and report | `.github/workflows/` | An insecure test change fails |
 | G07.2 | Application tests run: pytest (unit and PostgreSQL integration) and Vitest | Verified (run 38761479287: ruff, pytest with PostgreSQL, Vitest and frontend build) | Workflow and run | `.github/workflows/` | A failing test fails the run |
 | G07.3 | Production Docker images built for api, etl and frontend with one matrix job | Verified (run 38761479287: one matrix job built the api, etl and frontend images) | Dockerfiles and workflow | `apps/*/Dockerfile`, `.github/workflows/` | Three images built from one job definition |
-| G07.4 | Trivy scans each image and blocks publishing on fixable HIGH/CRITICAL findings | Verified (run 38761479287: Trivy gate on fixable HIGH/CRITICAL passed for all three images; a blocked image is G07.8) | Workflow and results | `.github/workflows/`, `docs/evidence/` | A known-vulnerable base image fails the job |
+| G07.4 | Trivy scans each image and blocks publishing on fixable HIGH/CRITICAL findings | Verified (run 38761479287: the Trivy gate on fixable HIGH/CRITICAL passed for all three images; 20 October 2026: an outdated base image failed the gate in run [39387251772](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/39387251772) and publishing was skipped; [evidence](screenshots/cicd/2026-10-20-deliberate-failing-runs.md)) | Workflow and results | `.github/workflows/`, `docs/evidence/` | A known-vulnerable base image fails the job |
 | G07.5 | Images pushed to ECR via the OIDC image role, tagged with the commit SHA | Verified (run 38761479287: the OIDC image role pushed all three images, tagged with commit 6e77c47, to immutable ECR repositories) | ECR image list | `docs/evidence/` | Tag equals the commit; no `latest` |
 | G07.6 | Deployment to EKS: the pipeline updates the GitOps image reference and Argo CD rolls it out | Verified (GitOps PR #46 pinned the digests; on 16 October 2026 the running API and frontend digests matched ECR) | Manifest-update commit; Argo CD sync; rollout | GitOps directory, `docs/screenshots/argocd/` | The running pod's image digest equals the ECR digest |
 | G07.7 | Successful end-to-end run recorded | Verified (run 38761479287: all jobs green; screenshot published) | Run screenshot | `docs/screenshots/cicd/` | All jobs green |
-| G07.8 | Appropriately failing runs recorded: a failing test and a security finding each stop publishing | Not started (planned: a failing test and a Trivy-blocked image, each stopping publish) | Run screenshots | `docs/screenshots/cicd/` | Publish and deploy jobs skipped after the failure |
+| G07.8 | Appropriately failing runs recorded: a failing test and a security finding each stop publishing | Verified (20 October 2026: a failing unit test, run [39387572606](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/39387572606), and a Trivy-blocked frontend image with 19 fixable HIGH/CRITICAL findings, run [39387251772](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/39387251772); in both, publish and GitOps were skipped. On pull requests publish is also skipped by its event condition; on `main` the `needs` chain stops it; [evidence](screenshots/cicd/2026-10-20-deliberate-failing-runs.md)) | Run screenshots | `docs/screenshots/cicd/` | Publish and deploy jobs skipped after the failure |
 
 ### G08 ArgoCD GitOps (15 points)
 
 | Field | Record |
 |---|---|
-| Status | In progress |
+| Status | Verified (all 5 criteria, 16–17 October 2026) |
 | Existing implementation | Installed 16 October 2026: `gitops/argocd/values.yaml` (Argo CD v3.5.4, chart 10.9.7, non-HA, no Dex/notifications/Ingress, port-forward access, Application health check for waves), `gitops/argocd/root-application.yaml` (app of apps over `gitops/kustomization.yaml`; Kustomize patches with `test` guards inject VPC, zone, security group and ECR URLs, never committed), child Applications with automated prune/self-heal and sync waves (cert-manager 0; load balancer controller and ClusterIssuers 1; NGINX 2; ExternalDNS 3; FinSight 4), `scripts/render-argocd-root.ps1`, `scripts/validate-gitops.ps1` + `tests/gitops` (27 passed); runbook `docs/infrastructure/argocd.md` |
-| Missing | Live install and evidence (pods, admin secret deleted, app tree, Git-triggered sync, Synced/Healthy, drift reverted, history/rollback) |
+| Missing | None. Self-heal reverted a manual scale 16 October 2026; automated sync deployed the merges of PRs #47, #50 and #51; eight Applications Synced and Healthy and the initial admin Secret confirmed removed 17 October 2026. Platform torn down 20 October 2026 ([teardown](evidence/2026-10-20-platform-teardown.md)) |
 | Runtime / repository evidence | Application status, sync history, drift test |
 | Objective verification | Git changes reach the cluster without manual `kubectl`; drift is corrected |
 | Reviewer IDs | R8.1-R8.5, R4.2 |
@@ -260,9 +261,9 @@ manifests, and Argo CD applies them (G08). There is no second, direct `kubectl` 
 
 | Field | Record |
 |---|---|
-| Status | In progress |
-| Existing implementation | `docs/architecture/finsight-architecture.drawio` (uncompressed mxGraph XML, 3 pages: overview, Kubernetes platform, CI/CD + IAM + data; native draw.io AWS 2025 and Kubernetes shapes and connectors; each flow on its own layer; legend; trust boundaries; status note: EKS cluster, node group and add-ons previously reached ACTIVE then destroyed for cost control, node Ready not demonstrated, in-cluster workloads including PostgreSQL and its init Job implemented but not yet deployed, images published through dev-images). Originally constructed programmatically as native draw.io cells, then refined after visual review. PNGs exported from that file with draw.io desktop 1.73 (headless): `finsight-architecture.png` (overview), `-kubernetes.png`, `-cicd.png`. README Architecture section embeds the overview. Structural check: XML parses, unique IDs, every connector joins two shapes, all required labels present. Mermaid diagrams in `day1.md`/`day2-aws.md` remain as history |
-| Missing | Owner review in diagrams.net (manual layout touch-ups optional); assessor review |
+| Status | Verified (all 5 criteria, 19 October 2026) |
+| Existing implementation | `docs/architecture/finsight-architecture.drawio`: uncompressed mxGraph XML, 3 pages (overview, Kubernetes platform, CI/CD with IAM and data), native draw.io AWS and Kubernetes shapes, each flow on its own layer, legend and trust boundaries; PNGs exported from it with draw.io desktop 1.73; the status banner records the deployment verified 16–17 October 2026 |
+| Missing | None ([diagram verification](screenshots/architecture/2026-10-19-diagram-verification.md), 19 October 2026) |
 | Runtime / repository evidence | `.drawio` source and PNG |
 | Objective verification | Every required component and flow is present and matches the deployed system |
 | Reviewer IDs | R2.1-R2.4, R1.2 |
@@ -285,22 +286,22 @@ because the stale tracker statement it cited has been corrected.
 
 Evidence conventions are in part 6. The graded criteria in part 3 cite these IDs.
 
-### Reviewer-quality status summary (14 October 2026)
+### Reviewer-quality status summary (20 October 2026)
 
 | Area | Verified | In progress | Not started | Not applicable |
 |---|---:|---:|---:|---:|
-| 1. README | 0 | 2 | 4 | 0 |
-| 2. Architecture diagram | 0 | 0 | 4 | 0 |
-| 3. Application demo | 0 | 0 | 3 | 0 |
-| 4. Screenshots | 0 | 0 | 7 | 0 |
-| 5. Workload hardening | 0 | 1 | 6 | 0 |
-| 6. Secrets, TLS, ingress, identity | 0 | 1 | 5 | 0 |
-| 7. CI/CD | 0 | 1 | 9 | 0 |
-| 8. GitOps and image tagging | 0 | 0 | 5 | 0 |
-| 9. Terraform | 3 | 2 | 1 | 0 |
-| 10. Code quality | 0 | 2 | 4 | 0 |
+| 1. README | 5 | 1 | 0 | 0 |
+| 2. Architecture diagram | 4 | 0 | 0 | 0 |
+| 3. Application demo | 0 | 3 | 0 | 0 |
+| 4. Screenshots | 6 | 0 | 1 | 0 |
+| 5. Workload hardening | 5 | 1 | 1 | 0 |
+| 6. Secrets, TLS, ingress, identity | 3 | 3 | 0 | 0 |
+| 7. CI/CD | 8 | 2 | 0 | 0 |
+| 8. GitOps and image tagging | 5 | 0 | 0 | 0 |
+| 9. Terraform | 5 | 1 | 0 | 0 |
+| 10. Code quality | 2 | 2 | 2 | 0 |
 | 11. Commit messages | 0 | 1 | 1 | 0 |
-| 12. Teardown and evidence | 0 | 1 | 3 | 0 |
+| 12. Teardown and evidence | 2 | 2 | 0 | 0 |
 | 13. Scope decisions | 0 | 0 | 0 | 3 |
 
 ### 4.1 Professional README
@@ -311,8 +312,8 @@ Evidence conventions are in part 6. The graded criteria in part 3 cite these IDs
 | R1.2 | Architecture summary with the exported diagram embedded and links to the detailed architecture docs | Verified (19 October 2026: README embeds the overview PNG, which renders on GitHub, and links the other two pages and the infrastructure docs; no broken links) | Embedded diagram image and links | `README.md`, `docs/architecture/` | Diagram renders on GitHub; every link resolves |
 | R1.3 | Key architecture decisions listed with the reason for each (e.g. EKS 1.36 STANDARD, Pod Identity over IRSA, single NAT, managed node group, S3 native locking) | Verified (19 October 2026: the README's decisions (single NAT, private nodes, Pod Identity, NLB-only ingress, upsert-only ExternalDNS, staging-first TLS) each state a reason and link the detailed record) | Decisions section linking to the detailed records | `README.md`, `docs/infrastructure/` | Each decision has a stated reason and a link |
 | R1.4 | Local setup works from a clean clone with the documented prerequisites and commands | In progress | Prerequisites list, commands, expected result | `README.md` "Start locally" section | Follow it on a clean clone; app starts and `scripts/verify.ps1` passes |
-| R1.5 | Deployment section gives the ordered bootstrap, foundation, platform and application steps, with approval gates and links to the runbook | In progress (the README describes the pipelines and approval gates; the ordered bootstrap, foundation, platform and application steps are in `docs/infrastructure/runbook.md`, not in the README) | Deployment section | `README.md`, `docs/infrastructure/runbook.md` | Steps match the runbook and the readiness record |
-| R1.6 | Technology choices table and a short future-improvements list | In progress (decisions and a limitations and planned-work list exist; no technology-choices table) | Both sections | `README.md` | Every major component appears with a one-line reason; improvements are concrete |
+| R1.5 | Deployment section gives the ordered bootstrap, foundation, platform and application steps, with approval gates and links to the runbook | Verified (20 October 2026: README section *Deploying from scratch* lists the bootstrap, foundation, images, platform, secrets, Argo CD and verification steps in order, each linked to its runbook or Argo CD section, with teardown linked to runbook section 6) | Deployment section | `README.md`, `docs/infrastructure/runbook.md` | Steps match the runbook and the readiness record |
+| R1.6 | Technology choices table and a short future-improvements list | Verified (20 October 2026: README *Technology choices* table, one line per component, linked to the [decision index](architecture/decisions.md); concrete next improvements under *Limitations and planned work*) | Both sections | `README.md` | Every major component appears with a one-line reason; improvements are concrete |
 
 ### 4.2 Original draw.io architecture diagram
 
@@ -361,27 +362,27 @@ Each screenshot must come from the real deployed environment and be dated in its
 
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
-| R6.1 | No secret values in Git, images or plain manifests; the chosen secret mechanism is documented with its reason | In progress (no secret values in Git or manifests; the Secret `finsight-database` is created out of band by `scripts/new-cluster-secrets.ps1` and referenced by name, documented in `docs/infrastructure/argocd.md`; a secret scan such as gitleaks has not been run) | Design note and manifests | `docs/`, Kubernetes manifests | Secret scanning (e.g. gitleaks) passes; manifests reference secrets only by name |
+| R6.1 | No secret values in Git, images or plain manifests; the chosen secret mechanism is documented with its reason | Verified (20 October 2026: Trivy secret scan of the tree passed; Checkov's one finding is the key names of the out-of-band `grafana-admin` Secret, a false positive; a pattern scan of all 76 commits on `main` found no keys or tokens; CI image scans include Trivy's secret scanner; Secrets are created out of band by `scripts/new-cluster-secrets.ps1` and referenced by name; [evidence](evidence/2026-10-20-secret-scan.md)) | Design note and manifests | `docs/`, Kubernetes manifests | Secret scanning (e.g. gitleaks) passes; manifests reference secrets only by name |
 | R6.2 | Database credentials delivered to pods through the documented mechanism and rotatable without rebuilding images | In progress (credentials reach pods from the Secret `finsight-database`; rotation without an image rebuild has not been demonstrated) | Manifests and a rotation note | Kubernetes manifests, `docs/` | Rotate once and confirm the app reconnects |
 | R6.3 | TLS certificate issued by cert-manager (Let's Encrypt) and shown Ready | Verified (16 October 2026: `finsight-tls-production` Ready=True from `letsencrypt-production`, and the browser shows a valid Let's Encrypt chain; [evidence](screenshots/README.md#g04-cert-manager-and-externaldns)) | `kubectl get certificate` | `docs/evidence/`, `docs/screenshots/app/` | Certificate Ready=True; browser shows a valid chain |
 | R6.4 | Ingress routes only the intended hostname and paths, with HTTP redirected to HTTPS; controller choice approved by the assessor | In progress | Ingress manifest, controller values, assessor decision | Kubernetes manifests, `docs/assessment-tracker.md` | `curl -I http://...` redirects; unknown hosts are rejected |
-| R6.5 | ExternalDNS limited to the one hosted zone and owns only its records | Verified (16–18 October 2026: Route 53 records carry the ExternalDNS TXT ownership records; the ExternalDNS IAM policy defined in `modules/dns-policies` names the single FinSight hosted zone and its record names, and the live IAM matched Terraform with no drift; the live policy statements were not compared line by line (see G02.3); [evidence](screenshots/README.md#g04-cert-manager-and-externaldns)) | Controller values and IAM policy | Helm values, Terraform | Records carry the ownership TXT record; IAM policy names a single zone |
+| R6.5 | ExternalDNS limited to the one hosted zone and owns only its records | Verified (16–18 October 2026: Route 53 records carry the ExternalDNS TXT ownership records; the ExternalDNS IAM policy defined in `modules/dns-policies` names the single FinSight hosted zone and its record names, and the live IAM matched Terraform with no drift; its live statements were reviewed on 20 October 2026 (G02.3); [evidence](screenshots/README.md#g04-cert-manager-and-externaldns)) | Controller values and IAM policy | Helm values, Terraform | Records carry the ownership TXT record; IAM policy names a single zone |
 | R6.6 | Workloads that call AWS use EKS Pod Identity with one role per service account; no node-role permissions used by apps | In progress (Pod Identity roles for the VPC CNI, EBS CSI driver, load balancer controller, ExternalDNS and cert-manager deployed 16 October 2026; the ETL role is unused until the S3 ETL exists) | Pod Identity associations and a test pod | `infra/terraform/modules/eks`, `environments/dev/platform` | From the ETL pod, `aws sts get-caller-identity` shows the ETL role; access outside raw/ and curated/ is denied |
 
 ### 4.7 Efficient CI/CD
 
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
-| R7.1 | Application tests run in CI for the API, ETL and frontend | In progress (API, ETL and frontend tests run in CI and passed in run 38761479287; a failing test failing the run has not been demonstrated, see G07.8) | Workflow and passing run | `.github/workflows/`, `docs/screenshots/cicd/` | A failing test fails the run |
+| R7.1 | Application tests run in CI for the API, ETL and frontend | Verified (API, ETL and frontend tests run in CI and passed in run 38761479287; 20 October 2026: a deliberately failing test failed run [39387572606](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/39387572606) and publishing was skipped; [evidence](screenshots/cicd/2026-10-20-deliberate-failing-runs.md)) | Workflow and passing run | `.github/workflows/`, `docs/screenshots/cicd/` | A failing test fails the run |
 | R7.2 | Build matrix used only where it removes duplication (e.g. one job definition building api, etl and frontend images); no matrix for its own sake | Verified (19 October 2026 review: one `images` matrix job builds the three real images, api, etl and frontend; no copy-pasted jobs; run [38761479287](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/38761479287)) | Workflow | `.github/workflows/` | Review: no copy-pasted jobs; matrix entries map to real artefacts |
-| R7.3 | Terraform fmt, validate, tests and Checkov run in CI | In progress (fmt, validate, test and Checkov run on every Terraform PR, for example runs 38892240555 and 38896532913; a deliberate formatting failure has not been demonstrated) | Workflow and run | `.github/workflows/`, `scripts/validate-terraform.ps1` | Introduce a formatting error on a branch and see the run fail |
-| R7.4 | Trivy scans every image before publishing, failing on HIGH/CRITICAL fixable findings, with documented exceptions | In progress (the Trivy gate fails on fixable HIGH/CRITICAL findings and passed for all three images in run 38761479287; no exceptions file, because none has been needed; a blocked image has not been demonstrated, see G07.8) | Workflow, results, exceptions file | `.github/workflows/`, `docs/evidence/` | Results attached to the run; exceptions have reasons and expiry dates |
+| R7.3 | Terraform fmt, validate, tests and Checkov run in CI | Verified (fmt, validate, test and Checkov run on every Terraform PR, for example runs 38892240555 and 38896532913; 20 October 2026: a deliberate formatting error failed run [39387242933](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/39387242933); [evidence](screenshots/cicd/2026-10-20-deliberate-failing-runs.md)) | Workflow and run | `.github/workflows/`, `scripts/validate-terraform.ps1` | Introduce a formatting error on a branch and see the run fail |
+| R7.4 | Trivy scans every image before publishing, failing on HIGH/CRITICAL fixable findings, with documented exceptions | Verified (the Trivy gate fails on fixable HIGH/CRITICAL findings; it passed for all three images in run 38761479287 and blocked an outdated frontend base image in run [39387251772](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/39387251772) on 20 October 2026; each run's summary attaches the full HIGH/CRITICAL report, including unfixed findings; no exceptions exist, so there is no exceptions file; [evidence](screenshots/cicd/2026-10-20-deliberate-failing-runs.md)) | Workflow, results, exceptions file | `.github/workflows/`, `docs/evidence/` | Results attached to the run; exceptions have reasons and expiry dates |
 | R7.5 | AWS access only through GitHub OIDC roles; no long-lived AWS keys in GitHub | Verified (19 October 2026: workflows use `id-token: write` with OIDC; the repository has no secrets, and the environment secrets are only `TERRAFORM_CONFIG_JSON` and `PLAN_DECRYPTION_IDENTITY`, with no AWS keys) | Workflow `permissions: id-token: write`, repository secret list | `.github/workflows/` | Repository and environment secrets contain no AWS access keys |
 | R7.6 | Role ARNs supplied as GitHub environment variables in `dev-infrastructure` and `dev-images`, taken from Terraform outputs, not hard-coded in workflow files | Verified (19 October 2026: `AWS_ROLE_ARN` is an environment variable in `dev-infrastructure`, `dev-infrastructure-apply` and `dev-images`; `grep arn:aws` finds nothing in `.github/workflows/`) | Environment settings, workflow references | GitHub settings, `.github/workflows/` | `grep` for `arn:aws` in workflows returns nothing |
 | R7.7 | Clear job dependencies (`needs:`): test and scan, then build, then publish, then manifest update | In progress (`publish` needs python, frontend, checkov and images, and `gitops` needs publish; but the image builds run in parallel with the tests rather than after them) | Workflow graph | `.github/workflows/` | Workflow graph screenshot shows the intended order |
 | R7.8 | No unnecessary repeated work: path filters, a concurrency group with cancel-in-progress, dependency caching, and each check run once per change | In progress (path filters, `cancel-in-progress`, and pip and npm caching are configured; docs-only PRs run no image builds; no run has yet been cancelled by a newer push) | Workflow | `.github/workflows/` | A docs-only change does not run image builds; a pushed fix cancels the superseded run |
 | R7.9 | Pinned action versions (commit SHA or exact tag) and least-privilege `permissions:` per workflow | Verified (19 October 2026 review: every external action pinned to a commit SHA; `permissions: {}` by default with per-job grants in all three workflows; Checkov GitHub Actions checks passed, as recorded in `docs/infrastructure/app-pipeline.md`) | Workflow | `.github/workflows/` | Review; Checkov GitHub Actions checks pass |
-| R7.10 | Infrastructure plan runs in CI with the plan-only role; apply stays a reviewed manual step | Verified (PR plans use the plan-only role; apply is a separate, manually started and approval-gated workflow; `terraform test` `plan_role_stays_read_only` in `modules/github-oidc` checks that the Terraform-defined plan policy writes only its lock object, and the live IAM matched Terraform with no drift; the live policy statements were not compared line by line (see G02.3)) | Workflow and run | `.github/workflows/` | The plan role cannot apply (its IAM policy is read-only apart from the lock file) |
+| R7.10 | Infrastructure plan runs in CI with the plan-only role; apply stays a reviewed manual step | Verified (PR plans use the plan-only role; apply is a separate, manually started and approval-gated workflow; `terraform test` `plan_role_stays_read_only` in `modules/github-oidc` checks that the Terraform-defined plan policy writes only its lock object, and the live IAM matched Terraform with no drift; its live statements were reviewed on 20 October 2026 (G02.3)) | Workflow and run | `.github/workflows/` | The plan role cannot apply (its IAM policy is read-only apart from the lock file) |
 
 ### 4.8 Argo CD GitOps and image tagging
 
@@ -400,9 +401,9 @@ Each screenshot must come from the real deployed environment and be dated in its
 | R9.1 | Modular Terraform: reusable modules with READMEs, separate bootstrap, foundation and platform roots, central configuration | Verified | Module tree, `validate` passing on all three roots | `infra/terraform/` | `scripts/validate-terraform.ps1` passed 14 October 2026 (3/3 roots, 9/9 tests) |
 | R9.2 | Remote S3 state with native locking, encryption, versioning and a distinct key per root | Verified (bootstrap and foundation) | Applied backends and lock behaviour | `infra/terraform/*/backend.tf`, `scripts/new-terraform-backend-config.ps1` | Bootstrap migrated and foundation applied to S3 on 14 October 2026; plans showed no changes; lock objects created and released |
 | R9.3 | Security exceptions are resource-scoped, justified and listed in one place | Verified | Checkov results and exceptions table | `docs/evidence/day2-terraform-validation.md`, `docs/evidence/day2-checkov-results.json` | Checkov 3.3.27: 130 passed, 0 failed, 15 documented skips |
-| R9.4 | Architecture decisions documented in one index (decision, reason, alternatives, date) | In progress | Decision records exist across several documents; no single index yet | `docs/infrastructure/`, `docs/architecture/` | Every R1.3 decision has a record linked from the index |
-| R9.5 | Platform applied and verified, then torn down cleanly with no orphaned resources | Not started | Apply, verification and teardown evidence | `docs/evidence/` | Runbook section 6 checks completed and recorded |
-| R9.6 | Retention safeguards demonstrated: `prevent_destroy`, no forced deletion, retained data survives platform teardown | In progress (configured and applied; survival not yet demonstrated) | Post-teardown listing | `docs/evidence/` | After platform teardown, the state, data, log buckets and ECR repositories still exist |
+| R9.4 | Architecture decisions documented in one index (decision, reason, alternatives, date) | Verified (20 October 2026: [decision index](architecture/decisions.md) with 16 decisions, each with its reason, alternatives not chosen, date and a link to its record; it covers every R1.3 decision) | Decision index with reason, alternatives and date for each decision | `docs/architecture/decisions.md` | Every R1.3 decision has a record linked from the index |
+| R9.5 | Platform applied and verified, then torn down cleanly with no orphaned resources | In progress (platform applied 16 October 2026 and torn down 20 October 2026 with runbook section 6: controller-created NLB, DNS records and PostgreSQL volume removed first, then the saved 68-resource platform destroy plan applied; read-only checks found no remaining platform resources; the section 6 step 8 billing recheck after the reporting delay is still due; [evidence](evidence/2026-10-20-platform-teardown.md)) | Apply, verification and teardown evidence | `docs/evidence/` | Runbook section 6 checks completed and recorded |
+| R9.6 | Retention safeguards demonstrated: `prevent_destroy`, no forced deletion, retained data survives platform teardown | Verified (20 October 2026: after the platform teardown, the state bucket with all state versions, the data and access-log buckets, and the three ECR repositories with their images still exist; `prevent_destroy` unchanged and no forced deletion; [evidence](evidence/2026-10-20-platform-teardown.md)) | Post-teardown listing | `docs/evidence/` | After platform teardown, the state, data, log buckets and ECR repositories still exist |
 
 ### 4.10 Formatting, linting and documentation quality
 
@@ -413,7 +414,7 @@ Each screenshot must come from the real deployed environment and be dated in its
 | R10.3 | YAML and HCL linted (yamllint, tflint) with a clean result | Not started | Config files and run output | `.yamllint`, `.tflint.hcl` | Linters pass in CI |
 | R10.4 | Kubernetes manifests validated (e.g. kubeconform) and scanned (Checkov) | In progress (Checkov scans the rendered manifests in CI; kubeconform runs only locally, in `scripts/validate-gitops.ps1`) | CI step | `.github/workflows/` | An invalid manifest fails CI |
 | R10.5 | Documentation concise and professional: no stale statements, every claim dated or evidenced | In progress | Documentation review | `docs/` | Review before submission. The stale add-on statement in `assessment-tracker.md` was corrected on 14 October 2026; repeat the review after each milestone |
-| R10.6 | No broken links in Markdown | Not started | Link check output | CI or local check | Link checker passes |
+| R10.6 | No broken links in Markdown | Verified (20 October 2026: local link and anchor check of every Markdown file found no broken relative links or anchors) | Link check output | CI or local check | Link checker passes |
 
 ### 4.11 Meaningful Git commit messages
 
@@ -426,10 +427,10 @@ Each screenshot must come from the real deployed environment and be dated in its
 
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
-| R12.1 | Teardown procedure covering controller-created resources (load balancers, DNS records, volumes) before Terraform destroy | In progress (documented, not executed) | Runbook section | `docs/infrastructure/runbook.md` section 6 | Executed once; every step recorded |
-| R12.2 | All portfolio evidence (screenshots, demo, command evidence) captured and committed **before** teardown | In progress (screenshots and command evidence are committed under `docs/screenshots/`; the demo video is not in the repository) | Evidence files | `docs/screenshots/`, `docs/evidence/` | Checklist sections 3 and 4 complete before the destroy plan is approved |
-| R12.3 | Post-teardown verification shows no billable platform resources remain | Not started | Listing of EKS, EC2, NAT, EIP, load balancers and EBS volumes | `docs/evidence/` | Each listing is empty for FinSight tags |
-| R12.4 | Actual cost recorded against the estimate | Not started | Cost Explorer summary | `docs/infrastructure/costs.md` | Actual vs estimate with an explanation of any difference |
+| R12.1 | Teardown procedure covering controller-created resources (load balancers, DNS records, volumes) before Terraform destroy | Verified (executed 20 October 2026: Argo CD root removed, applications cascade-deleted in dependency order, NLB removed by its controller, the four ExternalDNS records deleted, PVC and EBS volume deleted, then the platform destroy; every step recorded; [evidence](evidence/2026-10-20-platform-teardown.md)) | Runbook section | `docs/infrastructure/runbook.md` section 6 | Executed once; every step recorded |
+| R12.2 | All portfolio evidence (screenshots, demo, command evidence) captured and committed **before** teardown | In progress (screenshots, command evidence and the [pre-teardown inventory](evidence/2026-10-20-pre-teardown-inventory.md) were captured before teardown; they are committed on the final documentation branch, not yet merged; the demo video is not in the repository) | Evidence files | `docs/screenshots/`, `docs/evidence/` | Checklist sections 3 and 4 complete before the destroy plan is approved |
+| R12.3 | Post-teardown verification shows no billable platform resources remain | Verified (20 October 2026, 08:53 UTC: no EKS cluster, instances, NAT gateway, Elastic IP, load balancer, target group, platform VPC, network interfaces, EBS volumes or snapshots, platform log groups, platform IAM roles or FinSight DNS records remain; [evidence](evidence/2026-10-20-platform-teardown.md)) | Listing of EKS, EC2, NAT, EIP, load balancers and EBS volumes | `docs/evidence/` | Each listing is empty for FinSight tags |
+| R12.4 | Actual cost recorded against the estimate | In progress (estimate about USD 10.56/day; Cost Explorer usage before credits USD 10.19/day on 17–18 October 2026, USD 78.28 month-to-date to 20 October, fully offset by credits; the final actual cost needs billing data 24–48 hours after the 20 October teardown; [evidence](evidence/2026-10-20-platform-teardown.md)) | Cost Explorer summary | `docs/infrastructure/costs.md` | Actual vs estimate with an explanation of any difference |
 
 ### 4.13 Reviewer-praised technologies not adopted
 
@@ -456,13 +457,13 @@ These are FinSight's own goals, beyond the rubric.
 | ID | Criterion | Status | Required evidence | Location | Verification |
 |---|---|---|---|---|---|
 | F1 | Original financial analytics application: FastAPI reporting API and React dashboard over synthetic GBP data, with documented KPI definitions | Verified (local, 13 October 2026) | Day 1 verification record | `apps/`, `docs/kpi-definitions.md`, `docs/evidence/day1-verification.md` | Day 1: API analytics returned a populated GBP report through the frontend proxy |
-| F2 | Deterministic synthetic data generator; no real personal or financial data anywhere | In progress (the determinism test, `pipelines/tests/test_etl.py`, runs in CI; the README and KPI definitions say all data is synthetic; the written no-real-data statement for owner review has not been added) | Generator code and data note; a written statement reviewed before submission | `pipelines/src/finsight_pipelines/synthetic.py`, `config/synthetic.json`, `data/README.md` | Same seed reproduces identical data; review confirms no real data |
+| F2 | Deterministic synthetic data generator; no real personal or financial data anywhere | In progress (the determinism test, `pipelines/tests/test_etl.py`, runs in CI; 20 October 2026: the data statement was added to `data/README.md`; owner review of the statement is pending) | Generator code and data note; a written statement reviewed before submission | `pipelines/src/finsight_pipelines/synthetic.py`, `config/synthetic.json`, `data/README.md` | Same seed reproduces identical data; review confirms no real data |
 | F3 | Pandas ETL validates and rejects bad records, writes curated Parquet, and loads PostgreSQL from that Parquet atomically | Verified (local, 13 October 2026) | ETL tests and Day 1 record | `pipelines/src/finsight_pipelines/etl.py`, `pipelines/tests/test_etl.py`, `docs/evidence/day1-verification.md` | Day 1: 37 Python tests passed, including Parquet reconciliation and atomic rollback |
 | F4 | ETL runs on EKS as a Kubernetes Job or CronJob, reading and writing S3 `raw/` and `curated/` through its Pod Identity role | Not started | Job manifest, logs, S3 listing | GitOps directory, `docs/screenshots/data/` | Job completes; objects appear under the expected prefixes; other prefixes denied |
 | F5 | ELT path: raw loader plus dbt staging, intermediate and mart models with uniqueness, not-null, relationship and reconciliation tests | Not started (reserved; READMEs only) | dbt project and `dbt test` output | `warehouse/dbt/`, `pipelines/src/finsight_pipelines/elt/` | `dbt build` passes; marts reconcile with ETL totals |
-| F6 | PostgreSQL on EKS with an encrypted gp3 volume (EBS CSI), credentials from the documented secret mechanism, and a backup taken before teardown | In progress (deployed 16 October 2026: `finsight-postgres` StatefulSet, postgres:17-alpine pinned, encrypted gp3 StorageClass `finsight-gp3` via EBS CSI, ClusterIP only, credentials from Secret `finsight-database` created by `scripts/new-cluster-secrets.ps1`; init Job runs migrations + synthetic seed + ETL as an Argo CD Sync hook; verified with Docker under the same security settings. Backup before teardown not implemented) | Manifests, PVC status, backup record | GitOps directory, `docs/evidence/` | PVC Bound and encrypted; restore of the backup tested |
+| F6 | PostgreSQL on EKS with an encrypted gp3 volume (EBS CSI), credentials from the documented secret mechanism, and a backup taken before teardown | Verified (deployed 16 October 2026: `finsight-postgres` StatefulSet, postgres:17-alpine pinned, ClusterIP only, credentials from Secret `finsight-database` created by `scripts/new-cluster-secrets.ps1`; before teardown on 20 October 2026, PVC `data-finsight-postgres-0` Bound on StorageClass `finsight-gp3` (EBS CSI, `encrypted: true`, gp3) to an encrypted 5 GiB gp3 volume; a custom-format backup taken, checksum-verified and restore-tested in a separate database with matching row counts; [evidence](evidence/2026-10-20-platform-teardown.md)) | Manifests, PVC status, backup record | GitOps directory, `docs/evidence/` | PVC Bound and encrypted; restore of the backup tested |
 | F7 | Python and PostgreSQL integration tests and frontend tests pass in CI as well as locally | Verified (pytest with PostgreSQL integration and the frontend Vitest suite passed in GitHub Actions, run [38761479287](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/38761479287); they also passed locally on 13 October 2026) | CI run | `.github/workflows/` | Same suites green in GitHub Actions |
-| F8 | Dashboard figures match the KPI definitions and the database totals | In progress (KPI definitions documented) | Comparison note | `docs/kpi-definitions.md`, `docs/evidence/` | Spot-check three KPIs against SQL |
+| F8 | Dashboard figures match the KPI definitions and the database totals | Verified (20 October 2026: eight dashboard figures from the live API, including revenue, expenses, profit, margin and flagged transactions, match SQL totals over the regenerated deterministic dataset; [evidence](evidence/2026-10-20-kpi-sql-check.md)) | Comparison note | `docs/kpi-definitions.md`, `docs/evidence/` | Spot-check three KPIs against SQL |
 | F9 | Deployed application demonstrated end to end: data generated, processed, served and viewed over HTTPS | Not started | Demo video (R3.1) and screenshots | `README.md` link, `docs/screenshots/` | Watch the demo |
 
 ## 6. Evidence and verification requirements
@@ -482,7 +483,12 @@ These are FinSight's own goals, beyond the rubric.
 - Every runtime artefact records whether it came from a live system or a recorded deployment,
   and its date. After teardown, the portfolio must remain fully reviewable from these records.
 
-## 7. Outstanding implementation gaps, by priority
+## 7. Implementation plan (historical, 14 October 2026)
+
+**Historical.** This is the plan as written on 14 October 2026, kept unchanged as a record. It
+is not a list of current gaps: current status is in parts 3-5 and in the
+[assessment tracker](assessment-tracker.md). Items 1-6 were carried out between 14 and 20
+October 2026, apart from the open criteria listed there; item 7 (dbt) was not started.
 
 Ordered by grading weight, dependencies and the aim of keeping the paid EKS window short:
 everything that can be built and tested without the platform comes first.
@@ -497,9 +503,10 @@ everything that can be built and tested without the platform comes first.
 | 6 | One planned deployment window: platform apply, sync everything, capture all runtime evidence (G02-G08), record the demo, then tear down | G02-G08, R3, R4, R12 | Yes, about $10/day |
 | 7 | dbt ELT path | F5 | No |
 
-Decisions needed from the owner: assessor confirmation that F5 NGINX Ingress Controller
-satisfies "NGINX Ingress Controller"; HTTP-01 or DNS-01 for cert-manager; whether to use the
-AWS Load Balancer Controller or the default cloud-provider load balancer for NGINX.
+Decisions that were open on 14 October 2026: assessor confirmation that F5 NGINX Ingress
+Controller satisfies "NGINX Ingress Controller" (still open, R6.4); HTTP-01 or DNS-01 for
+cert-manager (DNS-01 chosen); whether to use the AWS Load Balancer Controller or the default
+cloud-provider load balancer for NGINX (the AWS Load Balancer Controller chosen).
 
 ## 8. Final pre-submission quality gate
 
@@ -517,6 +524,11 @@ FinSight may be submitted only when all of the following hold:
 
 ## 9. Live-deployment evidence and teardown gate
 
+**Status, 20 October 2026.** The deployment window ran from 16 to 20 October 2026 and the platform
+was torn down on 20 October 2026 ([teardown record](evidence/2026-10-20-platform-teardown.md)).
+The gate is kept as written. Teardown items are ticked only where a Verified criterion records
+them.
+
 Before the platform apply:
 
 - [ ] Steps 1-5 of part 7 are done, so the paid window is used only for deployment and evidence.
@@ -525,14 +537,17 @@ Before the platform apply:
 
 During the window, capture and commit before any teardown:
 
-- [ ] G02.7, G03.2-G03.4, G04.2-G04.6, G05.2-G05.4, G07.6-G07.8, G08.3-G08.5, F4, F6 evidence.
+- [ ] G02.7, G03.2-G03.4, G04.2-G04.6, G05.2-G05.4, G07.6-G07.8, G08.3-G08.5, F4, F6 evidence
+      (all captured except G04.3 and G04.5; F6 backup captured 20 October 2026).
 - [ ] Screenshots R4.1-R4.7 and the demo recording R3.1-R3.3.
 
 Teardown:
 
-- [ ] Runbook section 6 followed: controller-created load balancers, DNS records and volumes
-      removed first, then the platform destroy plan reviewed and approved.
-- [ ] Post-teardown listing shows no FinSight EKS, EC2, NAT, Elastic IP, load balancer or
-      unattached EBS resources (R12.3), and retained buckets and repositories still exist (R9.6).
+- [x] Runbook section 6 followed: controller-created load balancers, DNS records and volumes
+      removed first, then the platform destroy plan reviewed and approved (R12.1, 20 October
+      2026; the step 8 billing recheck is still due, R9.5).
+- [x] Post-teardown listing shows no FinSight EKS, EC2, NAT, Elastic IP, load balancer or
+      unattached EBS resources (R12.3), and retained buckets and repositories still exist (R9.6)
+      (20 October 2026).
 - [ ] Actual cost recorded against the estimate (R12.4).
 - [ ] All evidence labelled "recorded deployment, <date>"; nothing claims to be live.

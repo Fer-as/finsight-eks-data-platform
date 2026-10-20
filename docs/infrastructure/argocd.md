@@ -249,8 +249,10 @@ mounts, and why each exists:
 - **Teardown.** `persistentVolumeClaimRetentionPolicy.whenDeleted: Delete` with `reclaimPolicy: Delete`:
   `argocd app delete finsight --cascade` removes the claim and the EBS volume. Confirm that
   `kubectl get pv` shows nothing left before `terraform destroy`.
-- **Not implemented.** There is no backup before teardown (F6). The data is synthetic and
-  reproducible.
+- **No automated backups.** There is no recurring backup service; the data is synthetic and
+  reproducible. Before the teardown on 20 October 2026, a custom-format `pg_dump` was taken and
+  restore-tested in a separate database (F6;
+  [teardown evidence](../evidence/2026-10-20-platform-teardown.md#database-backup)).
 
 Verified locally with Docker, with the same security settings:
 - PostgreSQL initialises and restarts on its existing data.

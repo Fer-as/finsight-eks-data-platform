@@ -3,12 +3,17 @@
 Decision record, 14 October 2026 (issue #8, Option A approved by the owner; independently
 reviewed and hardened the same day). Current state, 17 October 2026:
 - The foundation IAM is applied, and both GitHub environments and the `main` ruleset are configured.
-- The pull-request workflow (#10) plans the live platform with the plan-only role, for example
+- The pull-request workflow (#10) planned the live platform with the plan-only role until the
+  20 October 2026 teardown, for example
   [run 38896532913](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/38896532913)
   for PR #53.
 - The approval-gated apply workflow (#11) has applied one reviewed saved plan: a tag-only update
   in [run 38901260888](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/38901260888)
-  (0 create, 1 update, 0 delete). A deliberate failing run (G06.6) has not been recorded yet.
+  (0 create, 1 update, 0 delete).
+- A deliberate failing run (G06.6) was recorded on 20 October 2026: a formatting error on draft
+  PR #64 failed the checks job in
+  [run 39387242933](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/39387242933),
+  and the plan job was skipped ([evidence](../screenshots/cicd/2026-10-20-deliberate-failing-runs.md)).
 
 ## Roles
 
@@ -379,7 +384,8 @@ The security regression tests are in `scripts/ci/tests/plan-protection.tests.ps1
 The CI key cannot read the review copy, and the reviewer key cannot read the binary plan. Missing,
 malformed, wrong or misplaced keys all fail closed.
 
-**Failing-run evidence (G06.6).** These refusals are deliberate and cost nothing:
+**Other deliberate refusals.** The recorded G06.6 failing run is the formatting error above. These
+refusals would also be deliberate, and cost nothing:
 - a run while `eks.compatibility_verified` is false
 - a run before the keys exist
 - a plan with deletions but without `allow_destroy`
