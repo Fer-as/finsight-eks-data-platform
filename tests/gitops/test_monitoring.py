@@ -421,3 +421,60 @@ def test_whole_cluster_requests_fit_two_workers(apps, finsight, monitoring):
         f"memory requests {memory / 2**30:.2f} GiB"
     )
     assert pods + ADDONS_PODS <= NODES * NODE_PODS * 0.85, f"{pods:.0f} pods"
+
+
+def dashboard_panel(title: str) -> dict:
+    dashboard = json.loads(
+        (GITOPS / "apps" / "finsight" / "dashboards" / "finsight.json").read_text(encoding="utf-8")
+    )
+    return next(p for p in dashboard["panels"] if p["title"] == title)
+
+
+def test_api_5xx_ratio_shows_zero_without_errors_but_not_without_the_api(tmp_path):
+    """Healthy traffic gives 0 (not "No data"); a missing API target still gives no result."""
+    expr = dashboard_panel("API 5xx ratio")["targets"][0]["expr"].replace("$__rate_interval", "5m")
+    rules = tmp_path / "empty-rules.yaml"
+    rules.write_text(yaml.safe_dump({"groups": []}), encoding="utf-8")
+
+    def case(series, samples):
+        return {
+            "interval": "1m",
+            "input_series": series,
+            "promql_expr_test": [{"expr": expr, "eval_time": "15m", "exp_samples": samples}],
+        }
+
+    ok = {"series": REQUESTS_SERIES.format(status=200), "values": "0+300x20"}
+    failing = {"series": REQUESTS_SERIES.format(status=503), "values": "0+100x20"}
+    unrelated = {"series": 'up{job="other", namespace="finsight"}', "values": "1x20"}
+    tests = {
+        "rule_files": [str(rules)],
+        "evaluation_interval": "1m",
+        "tests": [
+            case([ok], [{"labels": "{}", "value": 0}]),
+            case([ok, failing], [{"labels": "{}", "value": 0.25}]),
+            case([unrelated], []),
+        ],
+    }
+    test_file = tmp_path / "dashboard-5xx.test.yaml"
+    test_file.write_text(yaml.safe_dump(tests), encoding="utf-8")
+    run("promtool", "test", "rules", str(test_file))
+
+
+def test_nginx_upstream_panels_group_by_upstream_not_the_scrape_service_label():
+    """Prometheus Operator sets `service` to the scraped metrics Service, overriding NGINX's own
+    label, so the recorded panel showed nginx-ingress-prometheus-service; `upstream` is NGINX's."""
+    dashboard = json.loads(
+        (GITOPS / "apps" / "finsight" / "dashboards" / "finsight.json").read_text(encoding="utf-8")
+    )
+    upstream_targets = [
+        t
+        for p in dashboard["panels"]
+        for t in p["targets"]
+        if "nginx_ingress_controller_upstream_server" in t["expr"]
+    ]
+    assert len(upstream_targets) == 3
+    for target in upstream_targets:
+        assert not re.search(r"by \(([^)]*\b)?service\b", target["expr"]), target["expr"]
+        assert "{{service}}" not in target.get("legendFormat", "")
+    grouped = [t for t in upstream_targets if "by (" in t["expr"] and "code" not in t["expr"]]
+    assert grouped and all("upstream" in t["expr"] for t in grouped)
