@@ -259,7 +259,10 @@ I reach them with `kubectl port-forward`. More detail: [monitoring](docs/infrast
 - **ETL to S3: planned.** The data bucket and an ETL Pod Identity role exist, but the ETL still loads
   straight into PostgreSQL.
 - **ELT with dbt: not started.** Only the contract in [`warehouse/dbt`](warehouse/dbt/README.md) exists.
-- **No database backups.** The data is synthetic and can be regenerated.
+- **No automated backups.** There was no recurring backup service for the in-cluster database;
+  the data is synthetic and can be regenerated. Before the teardown on 20 October 2026 I took a
+  PostgreSQL custom-format backup and restore-tested it in a separate database
+  ([teardown evidence](docs/evidence/2026-10-20-platform-teardown.md#database-backup)).
 - **Not highly available.** There is one NAT gateway and one PostgreSQL replica.
 - **Frontend badge.** It still says "LOCAL ENVIRONMENT", a leftover from local development.
 - **Next improvements.** Two NAT gateways for AZ resilience; Amazon RDS with automated backups in

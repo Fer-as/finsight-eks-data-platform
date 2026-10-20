@@ -17,6 +17,9 @@ privately.
 
 ## Database backup
 
+- Before deletion, PVC `data-finsight-postgres-0` was Bound on StorageClass `finsight-gp3`
+  (EBS CSI driver, `encrypted: true`, gp3) to an encrypted 5 GiB gp3 volume, according to the
+  pre-teardown inventory. The credentials came from Secret `finsight-database`.
 - `pg_dump` in custom format, written inside the pod and copied with `kubectl cp`: 177,796 bytes.
   The SHA-256 matched on both ends.
 - Restored into a separate, temporary database on the same server. Row counts matched the live

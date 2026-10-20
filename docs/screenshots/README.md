@@ -1,7 +1,7 @@
 # Evidence
 
-Evidence from the live FinSight deployment in eu-west-2 and its GitHub Actions runs, captured on 14–20
-October 2026. It has two forms:
+Evidence from the FinSight deployment in eu-west-2 (recorded deployment, torn down 20 October 2026)
+and its GitHub Actions runs, captured on 14–20 October 2026. It has two forms:
 - screenshots;
 - command-output notes (`*.md`), which record the exact commands and their results.
 
