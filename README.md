@@ -192,6 +192,19 @@ images that ran on the cluster until the 20 October 2026 teardown; they were dep
 PR #46. The pipeline is described in
 [application pipeline](docs/infrastructure/app-pipeline.md).
 
+### GitOps validation
+
+[gitops.yml](.github/workflows/gitops.yml) runs on pull requests that change `gitops/`, the root
+renderer, the GitOps tests or the workflow itself. It runs
+[`scripts/validate-gitops.ps1`](scripts/validate-gitops.ps1), the same script used locally:
+- renders the root Application and the Helm and Kustomize output;
+- validates the manifests with kubeconform against Kubernetes 1.36 schemas;
+- checks the alert rules and dashboard queries with promtool;
+- runs the `tests/gitops` suite.
+
+The tools are pinned by digest, and the job fails if any test fails or is skipped. It has read-only
+repository access, with no AWS credentials, OIDC token or cluster connection.
+
 ## Deploying from scratch
 
 Each step needs its own approval. The commands, checks and approval gates are in the
@@ -281,7 +294,7 @@ I reach them with `kubectl port-forward`. More detail: [monitoring](docs/infrast
 - **Frontend badge.** It still says "LOCAL ENVIRONMENT", a leftover from local development.
 - **Next improvements.** Two NAT gateways for AZ resilience; Amazon RDS with automated backups in
   place of the in-cluster database; External Secrets with AWS Secrets Manager in place of
-  out-of-band Secrets; kubeconform in CI alongside Checkov.
+  out-of-band Secrets.
 
 Verification notes and Terraform validation results are in [docs/evidence](docs/evidence).
 Screenshots for each assessment area are indexed in [docs/screenshots](docs/screenshots/README.md).

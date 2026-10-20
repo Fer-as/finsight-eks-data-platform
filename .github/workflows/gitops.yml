@@ -1,0 +1,39 @@
+name: GitOps validation
+
+# Offline validation of the Argo CD layout, the FinSight chart and the monitoring stack: renders
+# the root Application, Helm and Kustomize output, then runs kubeconform, promtool and the
+# tests/gitops suite with pinned tools. No AWS credentials, OIDC token, image publishing or
+# cluster access. Image builds and publishing stay in app.yml.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "gitops/**"
+      - "scripts/validate-gitops.ps1"
+      - "scripts/render-argocd-root.ps1"
+      - "tests/gitops/**"
+      - ".github/workflows/gitops.yml"
+
+# Nothing by default; the job grants only what it needs.
+permissions: {}
+
+concurrency:
+  group: gitops-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Render, kubeconform, promtool and GitOps tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The same script developers run locally. Tool images are pinned by digest inside it, and
+      # it fails if any test is skipped or none run.
+      - name: Validate GitOps
+        shell: pwsh
+        run: ./scripts/validate-gitops.ps1
