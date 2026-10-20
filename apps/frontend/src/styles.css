@@ -120,14 +120,6 @@ nav .active {
   letter-spacing: 1px;
   color: #a9c2b3;
 }
-.status-dot {
-  display: inline-block;
-  background: #bce994;
-  border-radius: 50%;
-  width: 6px;
-  height: 6px;
-  margin-right: 6px;
-}
 .sidebar-footer p {
   font-size: 20px;
   line-height: 1.5;
