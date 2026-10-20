@@ -154,6 +154,17 @@ repository and a named GitHub environment. The deployed trust statements were re
 that on 20 October 2026, from a read-only capture taken on 18 October
 ([IAM review](docs/screenshots/eks/2026-10-20-iam-policy-review.md)).
 
+Changes to the workflows themselves are checked by [workflows.yml](.github/workflows/workflows.yml).
+It runs read-only on pull requests and does three things:
+- [`scripts/check-workflows.py`](scripts/check-workflows.py) checks that every workflow has no
+  default permissions, pins every action to a full commit SHA, and requests OIDC tokens only behind
+  a protected environment;
+- it checks that the deployment gates, such as the manual, approval-gated apply, have not been
+  weakened, and runs Checkov's GitHub Actions checks;
+- it runs the saved-plan protection tests with synthetic fixtures.
+
+It runs no plan and uses no AWS credentials.
+
 ### Terraform pipeline
 
 On pull requests, [terraform.yml](.github/workflows/terraform.yml) runs `fmt`, `validate`, `test` and
