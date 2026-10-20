@@ -5,12 +5,13 @@ x-python: &python
     context: .
     dockerfile: apps/api/Dockerfile
     target: runtime
-  environment: &database-env
+  # Migrations, data generation and the ETL connect as the writer role, never as the administrator.
+  environment: &writer-env
     PGHOST: postgres
     PGPORT: 5432
     PGDATABASE: ${POSTGRES_DB:-finsight}
-    PGUSER: ${POSTGRES_USER:-finsight}
-    PGPASSWORD: ${POSTGRES_PASSWORD:?Copy .env.example to .env first}
+    PGUSER: ${FINSIGHT_WRITER_ROLE:-finsight_app}
+    PGPASSWORD: ${FINSIGHT_WRITER_PASSWORD:?Copy .env.example to .env first}
   cpus: ${SERVICE_CPUS:-1.0}
   mem_limit: ${PIPELINE_MEMORY:-1g}
 
@@ -31,12 +32,31 @@ services:
     cpus: ${SERVICE_CPUS:-1.0}
     mem_limit: ${POSTGRES_MEMORY:-512m}
 
+  # The only service that connects as the administrator: creates or updates the writer and reader
+  # roles (scripts/bootstrap_roles.py), then exits.
+  roles:
+    <<: *python
+    command: ["python", "scripts/bootstrap_roles.py"]
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: ${POSTGRES_DB:-finsight}
+      PGUSER: ${POSTGRES_USER:-finsight}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Copy .env.example to .env first}
+      FINSIGHT_WRITER_ROLE: ${FINSIGHT_WRITER_ROLE:-finsight_app}
+      FINSIGHT_WRITER_PASSWORD: ${FINSIGHT_WRITER_PASSWORD:?Copy .env.example to .env first}
+      FINSIGHT_READER_ROLE: ${FINSIGHT_READER_ROLE:-finsight_api}
+      FINSIGHT_READER_PASSWORD: ${FINSIGHT_READER_PASSWORD:?Copy .env.example to .env first}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   migrate:
     <<: *python
     command: ["python", "scripts/migrate.py"]
     depends_on:
-      postgres:
-        condition: service_healthy
+      roles:
+        condition: service_completed_successfully
 
   generate:
     <<: *python
@@ -57,6 +77,13 @@ services:
 
   api:
     <<: *python
+    # Read-only reader role: SELECT on curated and ops only.
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: ${POSTGRES_DB:-finsight}
+      PGUSER: ${FINSIGHT_READER_ROLE:-finsight_api}
+      PGPASSWORD: ${FINSIGHT_READER_PASSWORD:?Copy .env.example to .env first}
     mem_limit: ${API_MEMORY:-256m}
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
