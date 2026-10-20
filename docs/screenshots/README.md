@@ -24,10 +24,12 @@ Nothing else was edited.
 | Evidence | Demonstrates | Type |
 |---|---|---|
 | [github-project-board-current.png](board/github-project-board-current.png) | The [project board](https://github.com/users/Fer-as/projects/2) as it was on 17 October 2026, with Backlog, Todo, In Progress, Review and Done columns and PR-linked cards | Deployment |
+| [github-project-board-2026-10-20.png](board/github-project-board-2026-10-20.png) | The board on 20 October 2026, after the 17 October status reconciliation: Backlog 4, Todo 2, In Progress 7, Review 6, Done 12 (31 cards) | Deployment |
 
-This screenshot shows the board exactly as it was on 17 October 2026, with some card statuses not yet
-updated. It is a single snapshot, not a finished board or a series showing progress over time. Dated start,
-middle and end snapshots (G01.5) were not captured.
+The 17 October screenshot shows the board before its card statuses were reconciled; the 20 October
+screenshot shows it afterwards. Both are genuine captures of the board's state on those dates. Neither is a
+start or middle snapshot: dated start and middle snapshots (G01.5) were not captured and are not
+recreated.
 
 ## G02 Terraform and EKS
 
@@ -126,7 +128,6 @@ dbt are shown as planned. The diagram was independently re-verified on 19 Octobe
 
 ## Not yet evidenced
 
-- **G01.1:** a reviewed screenshot of the current, reconciled project board.
 - **G01.5:** dated board snapshots at the start, middle and end of the work.
 - **G04.3:** a demonstrated certificate renewal. cert-manager has scheduled renewal for 15 December
   2026, but a renewal has not been forced.
