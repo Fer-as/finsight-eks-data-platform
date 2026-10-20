@@ -129,7 +129,7 @@ than killed, and the requests guarantee scheduling.
 6. **Capture the dashboards** with the time range inside the deployment window, into
    `docs/screenshots/monitoring/`:
    - *FinSight / Service overview*: API requests by route and status (200 and 404 visible), p95
-     latency, ingress requests by status code and by Service.
+     latency, ingress requests by status code and by upstream (FinSight backend).
    - *Node Exporter / Nodes*: both workers.
    - *Kubernetes / Compute Resources / Namespace (Pods)* for `finsight`.
    - *Kubernetes / Networking / Namespace (Pods)*.
@@ -206,3 +206,19 @@ live data (G05.3, G05.4), and the failed default login (G05.5).
 Captured on 19 October 2026, after the Grafana memory fix in PR #57: node, cluster and namespace,
 FinSight pod and service-overview dashboards with live data (G05.2, R4.4). Some service-overview
 panels show "No data"; see the [evidence index](../screenshots/README.md#g05-monitoring).
+
+### Dashboard corrections after teardown (20 October 2026)
+
+Two problems seen in the recorded dashboards were corrected in the dashboard definition after the
+platform was removed. They are checked offline by promtool and the GitOps tests, but have **not**
+been seen on a live cluster. The screenshots above show the dashboard as it was.
+- **API 5xx ratio.** With no 5xx responses, no 5xx series exists, so the ratio had no result and the
+  panel showed "No data". The numerator now defaults to zero (`… or vector(0)`), so healthy traffic
+  shows 0. If the API is not scraped, the denominator has no series, so the panel still shows "No
+  data" rather than a false zero. A promtool unit test covers three cases: no errors (0), errors
+  (the true ratio) and no API series (no result).
+- **Ingress panels by backend.** Prometheus Operator sets a `service` label to the scraped metrics
+  Service. That overrides NGINX's own `service` label, so the "by Service" panels showed
+  `nginx-ingress-prometheus-service` (recorded on 16 October 2026) instead of the FinSight backends.
+  They now group by NGINX's `upstream` label, which the scrape does not override. The exact upstream
+  names have not been observed on a live cluster.

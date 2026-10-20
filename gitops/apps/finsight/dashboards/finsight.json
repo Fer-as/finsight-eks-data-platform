@@ -55,13 +55,14 @@
       "id": 3,
       "type": "timeseries",
       "title": "API 5xx ratio",
+      "description": "Share of API requests that returned a 5xx status. Shows 0 when no request failed; shows No data when the API is not being scraped (no requests recorded at all).",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
       "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0 }, "overrides": [] },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(finsight_api_requests_total{namespace=\"finsight\", status=~\"5..\"}[$__rate_interval])) / sum(rate(finsight_api_requests_total{namespace=\"finsight\"}[$__rate_interval]))",
+          "expr": "(sum(rate(finsight_api_requests_total{namespace=\"finsight\", status=~\"5..\"}[$__rate_interval])) or vector(0)) / sum(rate(finsight_api_requests_total{namespace=\"finsight\"}[$__rate_interval]))",
           "legendFormat": "5xx ratio"
         }
       ]
@@ -84,30 +85,30 @@
     {
       "id": 5,
       "type": "timeseries",
-      "title": "Ingress p95 upstream latency by Service",
+      "title": "Ingress p95 upstream latency by upstream (FinSight backend)",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
       "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.95, sum by (le, service) (rate(nginx_ingress_controller_upstream_server_response_latency_ms_bucket{resource_namespace=\"finsight\"}[$__rate_interval])))",
-          "legendFormat": "{{service}}"
+          "expr": "histogram_quantile(0.95, sum by (le, upstream) (rate(nginx_ingress_controller_upstream_server_response_latency_ms_bucket{resource_namespace=\"finsight\"}[$__rate_interval])))",
+          "legendFormat": "{{upstream}}"
         }
       ]
     },
     {
       "id": 6,
       "type": "timeseries",
-      "title": "Ingress requests per second by Service",
+      "title": "Ingress requests per second by upstream (FinSight backend)",
       "datasource": { "type": "prometheus", "uid": "${datasource}" },
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
       "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (service) (rate(nginx_ingress_controller_upstream_server_response_latency_ms_count{resource_namespace=\"finsight\"}[$__rate_interval]))",
-          "legendFormat": "{{service}}"
+          "expr": "sum by (upstream) (rate(nginx_ingress_controller_upstream_server_response_latency_ms_count{resource_namespace=\"finsight\"}[$__rate_interval]))",
+          "legendFormat": "{{upstream}}"
         },
         {
           "refId": "B",
