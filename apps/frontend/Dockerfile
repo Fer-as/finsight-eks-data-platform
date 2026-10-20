@@ -21,7 +21,7 @@ RUN npm run build
 
 # No Node.js or development server in the production image: static files only. The page calls
 # /api on the same host; the Ingress routes /api to the API, so NGINX here serves files only.
-FROM nginxinc/nginx-unprivileged:1.30.6-alpine3.24@sha256:782bb89768cc87b7f95c18b95baa1af250e5d451f26794f59363540161147c01 AS production
+FROM nginxinc/nginx-unprivileged:1.25.3-alpine@sha256:c3f4d1ccb78e2c55e0d85883733ed1ad67a33af1cc8504f821e6140ad6037bd7 AS production
 COPY apps/frontend/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 USER 101
