@@ -1,6 +1,6 @@
 # Evidence
 
-Evidence from the live FinSight deployment in eu-west-2 and its GitHub Actions runs, captured on 14–19
+Evidence from the live FinSight deployment in eu-west-2 and its GitHub Actions runs, captured on 14–20
 October 2026. It has two forms:
 - screenshots;
 - command-output notes (`*.md`), which record the exact commands and their results.
@@ -40,7 +40,8 @@ recreated.
 | [eks-five-addons-active.png](eks/eks-five-addons-active.png) | EBS CSI driver, Pod Identity Agent, VPC CNI, CoreDNS and kube-proxy all Active | Deployment |
 | [2026-10-16-eks-deployment.md](eks/2026-10-16-eks-deployment.md) | Terraform apply of the platform root (68 resources); `kubectl` shows two nodes Ready in eu-west-2a and eu-west-2b | Deployment |
 | [2026-10-19-workload-security-check.md](eks/2026-10-19-workload-security-check.md) | Read-only check (19 October 2026) of every FinSight container: non-root UIDs, no privilege escalation, capabilities dropped, read-only root filesystem, requests and limits, probes; Argo CD initial admin Secret removed | Deployment |
-| [2026-10-18-network-iam-security-verification.md](eks/2026-10-18-network-iam-security-verification.md) | Read-only live checks (18 October 2026): subnets, routes, NAT, S3 endpoint and flow logs; private nodes without public IPs, IMDSv2 and encrypted gp3 volumes; IAM roles with policy names, boundaries and trust (statements not compared line by line); every security-group rule | Deployment |
+| [2026-10-18-network-iam-security-verification.md](eks/2026-10-18-network-iam-security-verification.md) | Read-only live checks (18 October 2026): subnets, routes, NAT, S3 endpoint and flow logs; private nodes without public IPs, IMDSv2 and encrypted gp3 volumes; IAM roles with policy names, boundaries and trust; every security-group rule | Deployment |
+| [2026-10-20-iam-policy-review.md](eks/2026-10-20-iam-policy-review.md) | Statement-level review (20 October 2026) of the 18 October IAM capture: all 13 roles' trust policies and 85 inline and customer-managed statements, compared with Terraform; the workload boundary and AWS-managed policy documents are not yet read | Safety control |
 
 ## G03 NGINX Ingress
 
@@ -89,6 +90,8 @@ The four `terraform-apply-*` screenshots follow one protected apply,
 | [terraform-apply-04-success.png](cicd/terraform-apply-04-success.png) | Both jobs succeeded; exactly the reviewed plan was applied | Deployment |
 | [cloudwatch-changeevidence-tag.png](cicd/cloudwatch-changeevidence-tag.png) | The applied change in AWS: the flow-log group carries `ChangeEvidence = g06-protected-apply` | Deployment |
 | [2026-10-16-g06-terraform-ci-audit.md](cicd/2026-10-16-g06-terraform-ci-audit.md) | Workflow, environment and drift audit, written before the apply was run | Deployment |
+| [terraform-fmt-failure-run-39387242933.png](cicd/terraform-fmt-failure-run-39387242933.png) | Deliberate formatting error on draft PR #64: the checks job failed and the plan job was skipped (G06.6) | Safety control |
+| [2026-10-20-deliberate-failing-runs.md](cicd/2026-10-20-deliberate-failing-runs.md) | The three deliberately failing runs of 20 October 2026, why they could not reach AWS, and the failure reasons (G06.6, G07.8) | Safety control |
 
 > **"Delete 1" in `terraform-pr53-plan-success.png` is simulated test data.** The table under
 > *fmt, validate, test and Checkov* has `Delete = 1`, commit `1111…` and a `/tmp/plan-protection-tests-…`
@@ -105,6 +108,8 @@ The four `terraform-apply-*` screenshots follow one protected apply,
 | [ecr-api-image.png](cicd/ecr-api-image.png) | API image tagged with commit SHA `6e77c47…` and stored with its digest | Deployment |
 | [gitops-image-pr-merged.png](cicd/gitops-image-pr-merged.png) | PR #46, opened by `github-actions`, pins the published digests and is merged | Deployment |
 | [2026-10-16-g07-deployed-digests.md](cicd/2026-10-16-g07-deployed-digests.md) | The digests running on EKS match the digests published to ECR | Deployment |
+| [app-failing-test-run-39387572606.png](cicd/app-failing-test-run-39387572606.png) | A deliberately failing unit test on draft PR #65 fails the Python job; publish and GitOps are skipped (G07.8) | Safety control |
+| [app-trivy-blocked-run-39387251772.png](cicd/app-trivy-blocked-run-39387251772.png) | An outdated frontend base image on draft PR #66 fails the Trivy gate; publish and GitOps are skipped (G07.8) | Safety control |
 
 ## G08 Argo CD
 
@@ -132,10 +137,7 @@ dbt are shown as planned. The diagram was independently re-verified on 19 Octobe
 - **G04.3:** a demonstrated certificate renewal. cert-manager has scheduled renewal for 15 December
   2026, but a renewal has not been forced.
 - **G04.5:** DNS records updated or removed when the Ingress changes (before and after listings).
-- **G06.6:** a deliberate failing Terraform run, such as a rejected destructive plan. One unplanned
-  failure is on record: [run 38887295294](https://github.com/Fer-as/finsight-eks-data-platform/actions/runs/38887295294)
-  failed at `terraform init` because of a configuration encoding problem, which was then fixed.
-- **G02.3:** a line-by-line comparison of the IAM policy statements with the documented scope.
-- **G07.8:** failing application runs, where a failing test and a security finding each stop publishing.
+- **G02.3:** the workload boundary and AWS-managed policy documents. The other IAM statements were
+  reviewed on 20 October 2026 ([IAM review](eks/2026-10-20-iam-policy-review.md)).
 - **R3.1-R3.3:** the final demo video.
 - **R12:** platform teardown and the actual cost record.

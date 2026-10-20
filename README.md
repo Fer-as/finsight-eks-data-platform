@@ -18,6 +18,8 @@ is the platform around it:
 - [Infrastructure (Terraform)](#infrastructure-terraform)
 - [Cluster platform (Argo CD)](#cluster-platform-argo-cd)
 - [CI/CD](#cicd)
+- [Deploying from scratch](#deploying-from-scratch)
+- [Technology choices](#technology-choices)
 - [Application and data](#application-and-data)
 - [Monitoring](#monitoring)
 - [Limitations and planned work](#limitations-and-planned-work)
@@ -131,8 +133,9 @@ More detail: [ingress](docs/infrastructure/ingress.md),
 
 No AWS access keys are stored in GitHub. Every job that needs AWS assumes a narrowly scoped IAM role
 through GitHub OIDC. The Terraform `github-oidc` module validates that each role trusts only this
-repository and a named GitHub environment. That describes the configuration; I have not separately
-audited the deployed trust policies.
+repository and a named GitHub environment. The deployed trust statements were reviewed against
+that on 20 October 2026, from a read-only capture taken on 18 October
+([IAM review](docs/screenshots/eks/2026-10-20-iam-policy-review.md)).
 
 ### Terraform pipeline
 
@@ -171,6 +174,57 @@ in [Terraform CI](docs/infrastructure/terraform-ci.md).
 images that are running now; they were deployed through GitOps PR #46. The pipeline is described in
 [application pipeline](docs/infrastructure/app-pipeline.md).
 
+## Deploying from scratch
+
+Each step needs its own approval. The commands, checks and approval gates are in the
+[runbook](docs/infrastructure/runbook.md); this is the order.
+
+1. **Prepare and validate locally.** Create the git-ignored `infra/terraform/config/local.json`, run
+   `scripts/validate-terraform.ps1` and generate the backend configuration
+   ([runbook 1](docs/infrastructure/runbook.md#1-local-preparation-and-review)). Get approval for read-only account checks,
+   then for provisioning ([runbook 2](docs/infrastructure/runbook.md#2-explicit-approval-gates)).
+2. **Bootstrap.** Apply the state bucket with local state, then migrate that state into the bucket
+   ([runbook 3](docs/infrastructure/runbook.md#3-bootstrap-local-state-first-then-s3-migration)).
+3. **Foundation.** Plan, review and apply the ECR repositories, data bucket, GitHub OIDC provider and
+   CI roles ([runbook 4](docs/infrastructure/runbook.md#4-foundation-then-platform)).
+4. **Images.** Merge an application change to `main`. After approval in `dev-images`, the
+   [application pipeline](#application-pipeline) publishes the images and opens the GitOps pull
+   request that pins their digests. Merge it.
+5. **Platform.** Plan, review and apply the VPC, NAT gateway, EKS cluster, nodes, add-ons and Pod
+   Identity roles ([runbook 4](docs/infrastructure/runbook.md#4-foundation-then-platform)). I applied the first platform plan
+   locally; later platform changes go through the [approval-gated apply](#terraform-pipeline).
+6. **Cluster secrets.** Run `scripts/new-cluster-secrets.ps1`, which creates the database and
+   Grafana Secrets outside Git
+   ([Argo CD bootstrap](docs/infrastructure/argocd.md#bootstrap-during-a-deployment-window)).
+7. **Argo CD.** Install Argo CD with Helm, replace the initial admin password, then render and apply
+   the root Application. Argo CD installs the platform services and FinSight in sync-wave order
+   ([Argo CD bootstrap](docs/infrastructure/argocd.md#bootstrap-during-a-deployment-window)).
+8. **Verify.** Run the read-only checks
+   ([runbook 5](docs/infrastructure/runbook.md#5-deployment-verification-carried-out-1618-october-2026)).
+
+Teardown has its own ordered sequence, which removes controller-created load balancers, DNS records
+and volumes before the Terraform destroy ([runbook 6](docs/infrastructure/runbook.md#6-precise-teardown-sequence)).
+
+## Technology choices
+
+| Area | Choice | Why |
+|---|---|---|
+| Infrastructure as code | Terraform 1.16.2, three roots, eleven local modules | Typed, tested modules; roots split so the costly platform can be destroyed alone |
+| Kubernetes | Amazon EKS 1.36 with managed nodes in private subnets | Managed control plane and node lifecycle |
+| Workload identity | EKS Pod Identity | One role per service account, no per-cluster OIDC provider |
+| CI/CD | GitHub Actions with OIDC | No stored AWS keys; environment approvals gate plan, apply and publishing |
+| Image registry | Amazon ECR with immutable tags | Images are pushed by commit SHA and deployed by digest |
+| Image scanning | Trivy | Fails the build on fixable HIGH/CRITICAL findings |
+| Policy scanning | Checkov | Scans Terraform, Dockerfiles and rendered manifests in CI |
+| GitOps | Argo CD, app-of-apps | Git is the source of truth; drift is reverted |
+| Ingress | F5 NGINX Ingress Controller behind an NLB | NGINX without the retired community controller |
+| DNS and TLS | ExternalDNS and cert-manager with Let's Encrypt | Records and certificates follow the Ingress |
+| Monitoring | kube-prometheus-stack | Prometheus, Grafana and alerting in one pinned chart |
+| Database | PostgreSQL 17 StatefulSet | Cheapest reproducible option for synthetic data |
+
+Each decision is recorded with its reason, the alternatives and its date in the
+[decision index](docs/architecture/decisions.md).
+
 ## Application and data
 
 | Component | Implementation |
@@ -204,6 +258,9 @@ I reach them with `kubectl port-forward`. More detail: [monitoring](docs/infrast
 - **No database backups.** The data is synthetic and can be regenerated.
 - **Not highly available.** There is one NAT gateway and one PostgreSQL replica.
 - **Frontend badge.** It still says "LOCAL ENVIRONMENT", a leftover from local development.
+- **Next improvements.** Two NAT gateways for AZ resilience; Amazon RDS with automated backups in
+  place of the in-cluster database; External Secrets with AWS Secrets Manager in place of
+  out-of-band Secrets; kubeconform in CI alongside Checkov.
 
 Verification notes and Terraform validation results are in [docs/evidence](docs/evidence).
 Screenshots for each assessment area are indexed in [docs/screenshots](docs/screenshots/README.md).
