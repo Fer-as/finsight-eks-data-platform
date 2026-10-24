@@ -25,8 +25,18 @@ container orchestration, end to end.
 > the dashboards are no longer online. The Terraform state, the container images in ECR, the CI
 > identity, the code and the deployment evidence are retained.
 
+## Project demo
+
+**[▶ Watch the FinSight EKS Project Demo on YouTube](https://www.youtube.com/watch?v=J5pxP_T6gmM)**
+
+The video demonstrates the FinSight application and its deployment on Amazon EKS. It is a recording
+of the deployment that ran from 16 to 20 October 2026. The EKS infrastructure was destroyed
+afterwards to avoid ongoing AWS costs, so the website and cluster shown in the video are no longer
+online.
+
 ## Contents
 
+- [Project demo](#project-demo)
 - [Architecture](#architecture)
 - [Technology stack and design decisions](#technology-stack-and-design-decisions)
 - [Infrastructure (Terraform)](#infrastructure-terraform)
